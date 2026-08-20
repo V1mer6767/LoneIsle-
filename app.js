@@ -5,12 +5,12 @@ const TILE_H = 40;
 const $ = (id) => document.getElementById(id);
 
 const BUILDING_DEFS = {
-  sawmill: { id: "sawmill", name: "Лісопилка", icon: "🌲", unlockLevel: 1, baseCost: { wood: 10 }, produce: { res: "wood", interval: 4000, cap: 60 }, desc: "Виробляє дерево з часом" },
-  farm: { id: "farm", name: "Ферма", icon: "🌾", unlockLevel: 2, baseCost: { wood: 15 }, produce: { res: "food", interval: 5000, cap: 60 }, desc: "Виробляє їжу з часом" },
-  mine: { id: "mine", name: "Копальня", icon: "⛏️", unlockLevel: 3, baseCost: { wood: 20, food: 10 }, produce: { res: "stone", interval: 6000, cap: 50 }, desc: "Виробляє камінь з часом" },
-  house: { id: "house", name: "Хатина", icon: "🏠", unlockLevel: 4, baseCost: { wood: 25, stone: 15 }, produce: { res: "gold", interval: 10000, cap: 40 }, desc: "Приносить золото з часом" },
-  dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 30, stone: 20, food: 10 }, produce: null, special: "dock", desc: "Відкриває будівництво на воді" },
-  boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 25, gold: 15 }, produce: { res: "food", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
+  sawmill: { id: "sawmill", name: "Лісопилка", icon: "🌲", unlockLevel: 1, baseCost: { wood: 6 }, produce: { res: "wood", interval: 4000, cap: 60 }, desc: "Виробляє дерево з часом" },
+  farm: { id: "farm", name: "Ферма", icon: "🌾", unlockLevel: 2, baseCost: { wood: 10 }, produce: { res: "food", interval: 5000, cap: 60 }, desc: "Виробляє їжу з часом" },
+  mine: { id: "mine", name: "Копальня", icon: "⛏️", unlockLevel: 3, baseCost: { wood: 14, food: 7 }, produce: { res: "stone", interval: 6000, cap: 50 }, desc: "Виробляє камінь з часом" },
+  house: { id: "house", name: "Хатина", icon: "🏠", unlockLevel: 4, baseCost: { wood: 18, stone: 10 }, produce: { res: "gold", interval: 10000, cap: 40 }, desc: "Приносить золото з часом" },
+  dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 22, stone: 14, food: 7 }, produce: null, special: "dock", desc: "Відкриває будівництво на воді" },
+  boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 18, gold: 10 }, produce: { res: "food", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
 };
 const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "dock"];
 
@@ -130,7 +130,7 @@ function formatNum(n) {
 function scaledCost(buildingId) {
   const def = BUILDING_DEFS[buildingId];
   const count = countBuildings(buildingId);
-  const mult = Math.pow(1.5, count);
+  const mult = 1 + count * 0.1;
   const cost = {};
   Object.entries(def.baseCost).forEach(([res, amt]) => {
     cost[res] = Math.round(amt * mult);
@@ -194,7 +194,7 @@ function boatGridPos(index) {
 }
 
 function boatCost() {
-  const mult = Math.pow(1.5, state.boats.length);
+  const mult = 1 + state.boats.length * 0.1;
   const base = BUILDING_DEFS.boat.baseCost;
   const cost = {};
   Object.entries(base).forEach(([res, amt]) => { cost[res] = Math.round(amt * mult); });
@@ -1030,7 +1030,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 11;
+const CURRENT_BUILD = 12;
 
 async function checkForUpdate() {
   try {
