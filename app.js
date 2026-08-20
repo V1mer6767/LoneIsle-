@@ -204,6 +204,21 @@ function renderWorld() {
     tileEls.set(key, el);
   }
 
+  for (const [key, tile] of Object.entries(state.tiles)) {
+    if (!tile.building) continue;
+    const def = BUILDING_DEFS[tile.building.id];
+    if (!def.produce) continue;
+    const [c, r] = key.split(",").map(Number);
+    const { x, y } = isoPos(c, r);
+    const badge = document.createElement("div");
+    badge.className = "collectBadge";
+    badge.style.left = x + "px";
+    badge.style.top = y - TILE_H * 0.75 + "px";
+    badge.style.display = "none";
+    world.appendChild(badge);
+    badgeEls.set(key, badge);
+  }
+
   applyPan();
   updateBadges();
 }
@@ -239,12 +254,6 @@ function buildTileEl(c, r, cssType, tile) {
     icon.className = "buildingIcon";
     icon.textContent = BUILDING_DEFS[tile.building.id].icon;
     el.appendChild(icon);
-
-    const badge = document.createElement("div");
-    badge.className = "collectBadge";
-    badge.style.display = "none";
-    el.appendChild(badge);
-    badgeEls.set(coordKey(c, r), badge);
   }
 
   return el;
@@ -467,6 +476,12 @@ function rotateView() {
     const { x, y } = isoPos(c, r);
     el.style.left = x + "px";
     el.style.top = y + "px";
+  }
+  for (const [key, el] of badgeEls.entries()) {
+    const [c, r] = key.split(",").map(Number);
+    const { x, y } = isoPos(c, r);
+    el.style.left = x + "px";
+    el.style.top = y - TILE_H * 0.75 + "px";
   }
 }
 
