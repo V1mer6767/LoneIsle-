@@ -1030,7 +1030,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 12;
+const CURRENT_BUILD = 13;
 
 async function checkForUpdate() {
   try {
@@ -1077,6 +1077,13 @@ function wire() {
   $("menuNewIsland").addEventListener("click", () => { closeMoreSheet(); openIslandSheet(); });
   $("menuWorkers").addEventListener("click", () => { closeMoreSheet(); openWorkerSheet(); });
   $("menuFishing").addEventListener("click", () => { closeMoreSheet(); openBoatSheet(); });
+  $("menuReset").addEventListener("click", () => {
+    closeMoreSheet();
+    if (!confirm("Скинути весь прогрес і почати острів заново? Це не можна скасувати.")) return;
+    if (!confirm("Точно? Всі будівлі, ресурси, персонажі та рівень зникнуть назавжди.")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    location.href = location.pathname + "?v=" + Date.now();
+  });
   $("btnCloseBoatSheet").addEventListener("click", closeBoatSheet);
   $("boatSheetBackdrop").addEventListener("click", closeBoatSheet);
   $("btnCloseWorkerSheet").addEventListener("click", closeWorkerSheet);
