@@ -10,6 +10,7 @@ const BUILDING_DEFS = {
   mine: { id: "mine", name: "Копальня", icon: "⛏️", unlockLevel: 3, baseCost: { wood: 20, food: 10 }, produce: { res: "stone", interval: 6000, cap: 50 }, desc: "Виробляє камінь з часом" },
   house: { id: "house", name: "Хатина", icon: "🏠", unlockLevel: 4, baseCost: { wood: 25, stone: 15 }, produce: { res: "gold", interval: 10000, cap: 40 }, desc: "Приносить золото з часом" },
   dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 30, stone: 20, food: 10 }, produce: null, special: "dock", desc: "Відкриває будівництво на воді" },
+  boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 25, gold: 15 }, produce: { res: "food", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
 };
 const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "dock"];
 
@@ -24,6 +25,7 @@ let rotation = 0;
 let sheetContext = null; // {kind:'unlock', c, r, unlockKind} | {kind:'build', c, r}
 
 function coordKey(c, r) { return `${c},${r}`; }
+function uid() { return Math.random().toString(16).slice(2) + Date.now().toString(16); }
 
 function defaultState() {
   const now = Date.now();
@@ -40,6 +42,7 @@ function defaultState() {
     resources: { wood: 20, stone: 0, food: 0, gold: 5 },
     tiles,
     hasDock: false,
+    boats: [],
     lastSaveAt: now,
   };
 }
@@ -50,6 +53,7 @@ function loadGame() {
     if (!raw) return { state: defaultState(), gapMs: 0 };
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.tiles) return { state: defaultState(), gapMs: 0 };
+    if (!Array.isArray(parsed.boats)) parsed.boats = [];
     const gapMs = Date.now() - (parsed.lastSaveAt || Date.now());
     return { state: parsed, gapMs };
   } catch {
@@ -82,7 +86,7 @@ function gainXP(amount) {
 }
 
 function showLevelUp(level) {
-  const unlocked = BUILDING_ORDER.filter((id) => BUILDING_DEFS[id].unlockLevel === level).map((id) => BUILDING_DEFS[id]);
+  const unlocked = Object.values(BUILDING_DEFS).filter((b) => b.unlockLevel === level);
   $("levelUpLv").textContent = `LV.${level}`;
   $("levelUpUnlock").textContent = unlocked.length
     ? `Розблоковано: ${unlocked.map((b) => `${b.icon} ${b.name}`).join(", ")}`
@@ -158,6 +162,129 @@ function computeFrontier() {
   return frontier;
 }
 
+/* ---------- fishing boats ---------- */
+const boatEls = new Map();
+
+function boatGridPos(index) {
+  const angle = index * 137.5 * (Math.PI / 180);
+  const radius = 3.3 + index * 0.55;
+  return { c: Math.cos(angle) * radius, r: Math.sin(angle) * radius };
+}
+
+function boatCost() {
+  const mult = Math.pow(1.5, state.boats.length);
+  const base = BUILDING_DEFS.boat.baseCost;
+  const cost = {};
+  Object.entries(base).forEach(([res, amt]) => { cost[res] = Math.round(amt * mult); });
+  return cost;
+}
+
+function hireBoat() {
+  const cost = boatCost();
+  if (!canAfford(cost)) return;
+  spend(cost);
+  const pos = boatGridPos(state.boats.length);
+  state.boats.push({ id: uid(), lastCollect: Date.now(), gc: pos.c, gr: pos.r });
+  gainXP(15);
+  renderWorld();
+  updateHeader();
+  saveGame();
+  renderBoatSheet();
+}
+
+function collectBoat(boatId) {
+  const boat = state.boats.find((b) => b.id === boatId);
+  if (!boat) return;
+  const def = BUILDING_DEFS.boat;
+  const ready = readyAmount({ id: "boat", lastCollect: boat.lastCollect });
+  if (ready <= 0) return;
+  addResource(def.produce.res, ready);
+  boat.lastCollect = Date.now();
+  gainXP(2);
+  const { x, y } = isoPos(boat.gc, boat.gr);
+  spawnFloatTextAt(x, y, `+${ready} ${RES_ICON[def.produce.res]}`);
+  updateBadges();
+  updateHeader();
+  saveGame();
+}
+
+function renderBoats() {
+  const world = $("world");
+  boatEls.clear();
+  for (const boat of state.boats) {
+    const { x, y } = isoPos(boat.gc, boat.gr);
+    const el = document.createElement("div");
+    el.className = "boat";
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    el.textContent = BUILDING_DEFS.boat.icon;
+    el.dataset.boatId = boat.id;
+    world.appendChild(el);
+    boatEls.set(boat.id, el);
+
+    const badge = document.createElement("div");
+    badge.className = "collectBadge";
+    badge.style.left = x + "px";
+    badge.style.top = y - 34 + "px";
+    badge.style.display = "none";
+    world.appendChild(badge);
+    badgeEls.set(`boat:${boat.id}`, badge);
+  }
+}
+
+function pickBoatAt(clientX, clientY) {
+  const o = viewportOrigin();
+  const relX = (clientX - o.x - pan.x) / scale;
+  const relY = (clientY - o.y - pan.y) / scale;
+  const HIT_R = 30;
+  for (const boat of state.boats) {
+    const { x, y } = isoPos(boat.gc, boat.gr);
+    if (Math.hypot(relX - x, relY - y) <= HIT_R) return boat.id;
+  }
+  return null;
+}
+
+function openBoatSheet() {
+  renderBoatSheet();
+  $("boatSheetBackdrop").style.display = "block";
+  $("boatSheet").style.display = "block";
+}
+function closeBoatSheet() {
+  $("boatSheetBackdrop").style.display = "none";
+  $("boatSheet").style.display = "none";
+}
+
+function renderBoatSheet() {
+  const locked = state.level < BUILDING_DEFS.boat.unlockLevel;
+  $("boatLocked").style.display = locked ? "block" : "none";
+  $("boatUnlocked").style.display = locked ? "none" : "block";
+  if (locked) return;
+
+  const cost = boatCost();
+  const afford = canAfford(cost);
+  const list = $("boatList");
+  list.innerHTML = "";
+
+  const info = document.createElement("div");
+  info.className = "buildOptDesc";
+  info.style.padding = "0 2px 10px";
+  info.textContent = `Найнятих човнів: ${state.boats.length}. Кожен ловить рибу (їжу) з часом.`;
+  list.appendChild(info);
+
+  const opt = document.createElement("div");
+  opt.className = "buildOption" + (afford ? "" : " disabled");
+  opt.innerHTML = `
+    <div class="buildOptIcon">⛵</div>
+    <div class="buildOptInfo">
+      <div class="buildOptName">Найняти човен</div>
+      <div class="buildOptDesc">${BUILDING_DEFS.boat.desc}</div>
+      <div class="buildOptCost">${costChips(cost, afford)}</div>
+    </div>
+  `;
+  opt.addEventListener("click", hireBoat);
+  list.appendChild(opt);
+}
+
 /* ---------- iso positioning ---------- */
 function rotateCoord(c, r) {
   switch (rotation % 4) {
@@ -219,6 +346,8 @@ function renderWorld() {
     badgeEls.set(key, badge);
   }
 
+  renderBoats();
+
   applyPan();
   updateBadges();
 }
@@ -274,6 +403,17 @@ function updateBadges() {
       badge.style.display = "none";
     }
   }
+  for (const boat of state.boats) {
+    const badge = badgeEls.get(`boat:${boat.id}`);
+    if (!badge) continue;
+    const ready = readyAmount({ id: "boat", lastCollect: boat.lastCollect });
+    if (ready > 0) {
+      badge.style.display = "flex";
+      badge.textContent = `+${ready} ${RES_ICON.food}`;
+    } else {
+      badge.style.display = "none";
+    }
+  }
 }
 
 function updateHeader() {
@@ -286,17 +426,19 @@ function updateHeader() {
 }
 
 /* ---------- floating text ---------- */
-function spawnFloatText(c, r, text) {
-  const { x, y } = isoPos(c, r);
-  const world = $("world");
-  const rect = world.getBoundingClientRect();
+function spawnFloatTextAt(x, y, text) {
+  const o = viewportOrigin();
   const el = document.createElement("div");
   el.className = "floatText";
   el.textContent = text;
-  el.style.left = rect.left + rect.width / 2 + x + pan.x + "px";
-  el.style.top = rect.top + rect.height / 2 + y + pan.y - 20 + "px";
+  el.style.left = o.x + pan.x + x * scale + "px";
+  el.style.top = o.y + pan.y + y * scale - 20 + "px";
   $("floaters").appendChild(el);
   setTimeout(() => el.remove(), 950);
+}
+function spawnFloatText(c, r, text) {
+  const { x, y } = isoPos(c, r);
+  spawnFloatTextAt(x, y, text);
 }
 
 /* ---------- tile interactions ---------- */
@@ -350,6 +492,16 @@ function collectAll() {
       addResource(def.produce.res, ready);
       tile.building.lastCollect = Date.now();
       totals[def.produce.res] = (totals[def.produce.res] || 0) + ready;
+      any = true;
+      gainXP(2);
+    }
+  }
+  for (const boat of state.boats) {
+    const ready = readyAmount({ id: "boat", lastCollect: boat.lastCollect });
+    if (ready > 0) {
+      addResource(BUILDING_DEFS.boat.produce.res, ready);
+      boat.lastCollect = Date.now();
+      totals[BUILDING_DEFS.boat.produce.res] = (totals[BUILDING_DEFS.boat.produce.res] || 0) + ready;
       any = true;
       gainXP(2);
     }
@@ -478,10 +630,18 @@ function rotateView() {
     el.style.top = y + "px";
   }
   for (const [key, el] of badgeEls.entries()) {
+    if (key.startsWith("boat:")) continue;
     const [c, r] = key.split(",").map(Number);
     const { x, y } = isoPos(c, r);
     el.style.left = x + "px";
     el.style.top = y - TILE_H * 0.75 + "px";
+  }
+  for (const boat of state.boats) {
+    const { x, y } = isoPos(boat.gc, boat.gr);
+    const boatEl = boatEls.get(boat.id);
+    if (boatEl) { boatEl.style.left = x + "px"; boatEl.style.top = y + "px"; }
+    const badge = badgeEls.get(`boat:${boat.id}`);
+    if (badge) { badge.style.left = x + "px"; badge.style.top = y - 34 + "px"; }
   }
 }
 
@@ -582,6 +742,8 @@ function wirePanning() {
     if (!down) { down = false; return; }
     down = false;
     if (!moved) {
+      const boatId = pickBoatAt(e.clientX, e.clientY);
+      if (boatId) { collectBoat(boatId); return; }
       const tile = pickTileAt(e.clientX, e.clientY);
       if (tile) onTileTap(tile.c, tile.r);
     }
@@ -628,6 +790,9 @@ async function registerSW() {
 }
 
 function wire() {
+  $("btnFishing").addEventListener("click", openBoatSheet);
+  $("btnCloseBoatSheet").addEventListener("click", closeBoatSheet);
+  $("boatSheetBackdrop").addEventListener("click", closeBoatSheet);
   $("btnRotate").addEventListener("click", rotateView);
   $("btnRefresh").addEventListener("click", hardRefresh);
   $("btnCloseSheet").addEventListener("click", closeSheet);

@@ -30,6 +30,7 @@
     <div class="resPill" data-res="gold"><span class="resIcon">🪙</span><span id="resGold">0</span></div>
   </div>
 
+  <button id="btnFishing" class="iconbtn" title="Рибальство">🎣</button>
   <button id="btnRotate" class="iconbtn" title="Повернути острів">🔄</button>
   <button id="btnRefresh" class="iconbtn" title="Оновити">↻</button>
 </header>
@@ -53,6 +54,18 @@
   <button id="btnCloseSheet" class="btn ghost full">Закрити</button>
 </div>
 <div id="sheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+
+<!-- Fishing / boats sheet -->
+<div id="boatSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="boatSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">Рибальство</div>
+  <div id="boatLocked" class="buildOptDesc" style="display:none; padding:6px 2px 14px;">Рибальські човни доступні з LV.6.</div>
+  <div id="boatUnlocked" style="display:none;">
+    <div class="buildList" id="boatList"></div>
+  </div>
+  <button id="btnCloseBoatSheet" class="btn ghost full">Закрити</button>
+</div>
 
 <!-- Level up overlay -->
 <div id="levelUpOverlay" class="levelUpOverlay" style="display:none;">
