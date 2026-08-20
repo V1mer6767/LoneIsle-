@@ -39,6 +39,7 @@ const ISLAND_COST_MULT = 1.7;
 let state = null;
 const tileEls = new Map();
 const badgeEls = new Map();
+const dockShedEls = new Map();
 
 let pan = { x: 0, y: 0 };
 let rotation = 0;
@@ -666,6 +667,19 @@ function renderWorld() {
     badgeEls.set(key, badge);
   }
 
+  dockShedEls.clear();
+  for (const [key, tile] of Object.entries(state.tiles)) {
+    if (!tile.building || tile.building.id !== "dock") continue;
+    const [c, r] = key.split(",").map(Number);
+    const { x, y } = isoPos(c, r);
+    const shed = document.createElement("div");
+    shed.className = "dockShed";
+    shed.style.left = x - TILE_W * 0.14 + "px";
+    shed.style.top = y - TILE_H * 0.16 + "px";
+    world.appendChild(shed);
+    dockShedEls.set(key, shed);
+  }
+
   renderBoats();
   renderWorkers();
 
@@ -701,11 +715,6 @@ function buildTileEl(c, r, cssType, tile) {
   }
 
   if (tile && tile.building) {
-    if (isDock) {
-      const shed = document.createElement("div");
-      shed.className = "dockShed";
-      el.appendChild(shed);
-    }
     const icon = document.createElement("div");
     icon.className = "buildingIcon" + (isDock ? " dockIcon" : "");
     icon.textContent = BUILDING_DEFS[tile.building.id].icon;
@@ -964,6 +973,12 @@ function rotateView() {
     el.style.left = x + "px";
     el.style.top = y - TILE_H * 0.75 + "px";
   }
+  for (const [key, el] of dockShedEls.entries()) {
+    const [c, r] = key.split(",").map(Number);
+    const { x, y } = isoPos(c, r);
+    el.style.left = x - TILE_W * 0.14 + "px";
+    el.style.top = y - TILE_H * 0.16 + "px";
+  }
   for (const boat of state.boats) {
     const { x, y } = isoPos(boat.gc, boat.gr);
     const boatEl = boatEls.get(boat.id);
@@ -1100,7 +1115,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 16;
+const CURRENT_BUILD = 17;
 
 async function checkForUpdate() {
   try {

@@ -173,12 +173,14 @@ body{
 .buildingIcon.dockIcon{ left:62%; }
 
 .dockShed{
-  position:absolute; left:36%; top:34%; transform:translate(-50%,-50%);
+  position:absolute; transform:translate(-50%,-50%);
   width:15px; height:13px;
   background:linear-gradient(180deg, #a9764f, #7a5136);
   border-radius:1px;
   pointer-events:none;
+  z-index:5;
   filter:drop-shadow(0 3px 3px rgba(0,0,0,.3));
+  transition:left .32s ease, top .32s ease;
 }
 .dockShed::before{
   content:"";
