@@ -24,6 +24,10 @@ const WORKER_DEFS = {
 };
 const WORKER_CYCLE_MS = 3500;
 
+const SECOND_ISLAND_CENTER = { c: 7, r: -3 };
+const SECOND_ISLAND_COST = { wood: 200, stone: 80, gold: 60 };
+const SECOND_ISLAND_LEVEL = 7;
+
 let state = null;
 const tileEls = new Map();
 const badgeEls = new Map();
@@ -52,6 +56,7 @@ function defaultState() {
     hasDock: false,
     boats: [],
     workers: {},
+    secondIslandBought: false,
     lastSaveAt: now,
   };
 }
@@ -64,6 +69,7 @@ function loadGame() {
     if (!parsed || !parsed.tiles) return { state: defaultState(), gapMs: 0 };
     if (!Array.isArray(parsed.boats)) parsed.boats = [];
     if (!parsed.workers || typeof parsed.workers !== "object") parsed.workers = {};
+    if (typeof parsed.secondIslandBought !== "boolean") parsed.secondIslandBought = false;
     const gapMs = Date.now() - (parsed.lastSaveAt || Date.now());
     return { state: parsed, gapMs };
   } catch {
@@ -263,6 +269,10 @@ function closeBoatSheet() {
   $("boatSheetBackdrop").style.display = "none";
   $("boatSheet").style.display = "none";
 }
+function closeMoreSheet() {
+  $("moreSheetBackdrop").style.display = "none";
+  $("moreSheet").style.display = "none";
+}
 
 function renderBoatSheet() {
   const locked = state.level < BUILDING_DEFS.boat.unlockLevel;
@@ -445,6 +455,79 @@ function renderWorkerSheet() {
     if (!hired) opt.addEventListener("click", () => hireWorker(res));
     list.appendChild(opt);
   }
+}
+
+/* ---------- second island ---------- */
+function buySecondIsland() {
+  if (state.secondIslandBought) return;
+  if (state.level < SECOND_ISLAND_LEVEL) return;
+  if (!canAfford(SECOND_ISLAND_COST)) return;
+  spend(SECOND_ISLAND_COST);
+
+  const { c: cc, r: cr } = SECOND_ISLAND_CENTER;
+  for (let dc = -1; dc <= 1; dc++) {
+    for (let dr = -1; dr <= 1; dr++) {
+      state.tiles[coordKey(cc + dc, cr + dr)] = { type: "land", building: null };
+    }
+  }
+  state.tiles[coordKey(cc, cr)].building = { id: "sawmill", lastCollect: Date.now() };
+  state.secondIslandBought = true;
+
+  gainXP(50);
+  renderWorld();
+  updateHeader();
+  saveGame();
+  closeIslandSheet();
+  flyTo(cc, cr);
+}
+
+function flyTo(c, r) {
+  const { x, y } = isoPos(c, r);
+  pan.x = -x * scale;
+  pan.y = -y * scale;
+  applyPan();
+}
+
+function openIslandSheet() {
+  renderIslandSheet();
+  $("islandSheetBackdrop").style.display = "block";
+  $("islandSheet").style.display = "block";
+}
+function closeIslandSheet() {
+  $("islandSheetBackdrop").style.display = "none";
+  $("islandSheet").style.display = "none";
+}
+
+function renderIslandSheet() {
+  const list = $("islandList");
+  list.innerHTML = "";
+
+  if (state.secondIslandBought) {
+    const done = document.createElement("div");
+    done.className = "buildOptDesc";
+    done.style.padding = "6px 2px";
+    done.textContent = "Другий острів уже твій — розвивай його так само, як перший.";
+    list.appendChild(done);
+    return;
+  }
+
+  const levelOk = state.level >= SECOND_ISLAND_LEVEL;
+  const afford = levelOk && canAfford(SECOND_ISLAND_COST);
+  const opt = document.createElement("div");
+  opt.className = "buildOption" + (afford ? "" : " disabled");
+  const statusLine = levelOk
+    ? costChips(SECOND_ISLAND_COST, afford)
+    : `<span class="costChip short">Доступно з LV.${SECOND_ISLAND_LEVEL}</span>`;
+  opt.innerHTML = `
+    <div class="buildOptIcon">🏝️</div>
+    <div class="buildOptInfo">
+      <div class="buildOptName">Купити новий острів</div>
+      <div class="buildOptDesc">Ще одна ділянка землі неподалік, з безкоштовною лісопилкою на старт</div>
+      <div class="buildOptCost">${statusLine}</div>
+    </div>
+  `;
+  if (levelOk) opt.addEventListener("click", buySecondIsland);
+  list.appendChild(opt);
 }
 
 /* ---------- iso positioning ---------- */
@@ -959,12 +1042,21 @@ async function registerSW() {
 }
 
 function wire() {
-  $("btnWorkers").addEventListener("click", openWorkerSheet);
-  $("btnCloseWorkerSheet").addEventListener("click", closeWorkerSheet);
-  $("workerSheetBackdrop").addEventListener("click", closeWorkerSheet);
-  $("btnFishing").addEventListener("click", openBoatSheet);
+  $("btnMore").addEventListener("click", () => {
+    $("moreSheetBackdrop").style.display = "block";
+    $("moreSheet").style.display = "block";
+  });
+  $("btnCloseMoreSheet").addEventListener("click", closeMoreSheet);
+  $("moreSheetBackdrop").addEventListener("click", closeMoreSheet);
+  $("menuNewIsland").addEventListener("click", () => { closeMoreSheet(); openIslandSheet(); });
+  $("menuWorkers").addEventListener("click", () => { closeMoreSheet(); openWorkerSheet(); });
+  $("menuFishing").addEventListener("click", () => { closeMoreSheet(); openBoatSheet(); });
   $("btnCloseBoatSheet").addEventListener("click", closeBoatSheet);
   $("boatSheetBackdrop").addEventListener("click", closeBoatSheet);
+  $("btnCloseWorkerSheet").addEventListener("click", closeWorkerSheet);
+  $("workerSheetBackdrop").addEventListener("click", closeWorkerSheet);
+  $("btnCloseIslandSheet").addEventListener("click", closeIslandSheet);
+  $("islandSheetBackdrop").addEventListener("click", closeIslandSheet);
   $("btnRotate").addEventListener("click", rotateView);
   $("btnRefresh").addEventListener("click", hardRefresh);
   $("btnCloseSheet").addEventListener("click", closeSheet);

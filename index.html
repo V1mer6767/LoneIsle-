@@ -30,8 +30,7 @@
     <div class="resPill" data-res="gold"><span class="resIcon">🪙</span><span id="resGold">0</span></div>
   </div>
 
-  <button id="btnWorkers" class="iconbtn" title="Персонажі">👥</button>
-  <button id="btnFishing" class="iconbtn" title="Рибальство">🎣</button>
+  <button id="btnMore" class="iconbtn" title="Ще дії">⋯</button>
   <button id="btnRotate" class="iconbtn" title="Повернути острів">🔄</button>
   <button id="btnRefresh" class="iconbtn" title="Оновити">↻</button>
 </header>
@@ -55,6 +54,37 @@
   <button id="btnCloseSheet" class="btn ghost full">Закрити</button>
 </div>
 <div id="sheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+
+<!-- More actions menu -->
+<div id="moreSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="moreSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">Дії</div>
+  <div class="buildList">
+    <div class="buildOption" id="menuNewIsland">
+      <div class="buildOptIcon">🏝️</div>
+      <div class="buildOptInfo"><div class="buildOptName">Новий острів</div></div>
+    </div>
+    <div class="buildOption" id="menuWorkers">
+      <div class="buildOptIcon">👥</div>
+      <div class="buildOptInfo"><div class="buildOptName">Персонажі</div></div>
+    </div>
+    <div class="buildOption" id="menuFishing">
+      <div class="buildOptIcon">🎣</div>
+      <div class="buildOptInfo"><div class="buildOptName">Рибальство</div></div>
+    </div>
+  </div>
+  <button id="btnCloseMoreSheet" class="btn ghost full">Закрити</button>
+</div>
+
+<!-- Second island sheet -->
+<div id="islandSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="islandSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">Новий острів</div>
+  <div class="buildList" id="islandList"></div>
+  <button id="btnCloseIslandSheet" class="btn ghost full">Закрити</button>
+</div>
 
 <!-- Workers sheet -->
 <div id="workerSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
