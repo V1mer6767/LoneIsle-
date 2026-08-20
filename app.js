@@ -20,6 +20,7 @@ const tileEls = new Map();
 const badgeEls = new Map();
 
 let pan = { x: 0, y: 0 };
+let rotation = 0;
 let sheetContext = null; // {kind:'unlock', c, r, unlockKind} | {kind:'build', c, r}
 
 function coordKey(c, r) { return `${c},${r}`; }
@@ -158,8 +159,25 @@ function computeFrontier() {
 }
 
 /* ---------- iso positioning ---------- */
+function rotateCoord(c, r) {
+  switch (rotation % 4) {
+    case 1: return [-r, c];
+    case 2: return [-c, -r];
+    case 3: return [r, -c];
+    default: return [c, r];
+  }
+}
+function unrotateCoord(rc, rr) {
+  switch (rotation % 4) {
+    case 1: return [rr, -rc];
+    case 2: return [-rc, -rr];
+    case 3: return [-rr, rc];
+    default: return [rc, rr];
+  }
+}
 function isoPos(c, r) {
-  return { x: (c - r) * (TILE_W / 2), y: (c + r) * (TILE_H / 2) };
+  const [rc, rr] = rotateCoord(c, r);
+  return { x: (rc - rr) * (TILE_W / 2), y: (rc + rr) * (TILE_H / 2) };
 }
 
 /* ---------- rendering ---------- */
@@ -442,6 +460,16 @@ function closeSheet() {
   sheetContext = null;
 }
 
+function rotateView() {
+  rotation = (rotation + 1) % 4;
+  for (const [key, el] of tileEls.entries()) {
+    const [c, r] = key.split(",").map(Number);
+    const { x, y } = isoPos(c, r);
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+  }
+}
+
 /* ---------- panning ---------- */
 function applyPan() {
   $("world").style.transform = `translate(${pan.x}px, ${pan.y}px)`;
@@ -486,9 +514,10 @@ function pickTileAt(clientX, clientY) {
   const originY = vpRect.top + vpRect.height * 0.46 + pan.y;
   const relX = clientX - originX;
   const relY = clientY - originY;
-  const cf = (relX / (TILE_W / 2) + relY / (TILE_H / 2)) / 2;
-  const rf = (relY / (TILE_H / 2) - relX / (TILE_W / 2)) / 2;
-  return { c: Math.round(cf), r: Math.round(rf) };
+  const rcf = (relX / (TILE_W / 2) + relY / (TILE_H / 2)) / 2;
+  const rrf = (relY / (TILE_H / 2) - relX / (TILE_W / 2)) / 2;
+  const [c, r] = unrotateCoord(Math.round(rcf), Math.round(rrf));
+  return { c, r };
 }
 
 /* ---------- misc ---------- */
@@ -510,6 +539,7 @@ async function registerSW() {
 }
 
 function wire() {
+  $("btnRotate").addEventListener("click", rotateView);
   $("btnRefresh").addEventListener("click", hardRefresh);
   $("btnCloseSheet").addEventListener("click", closeSheet);
   $("sheetBackdrop").addEventListener("click", closeSheet);

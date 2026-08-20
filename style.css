@@ -48,8 +48,8 @@ body{
 /* ---------- header ---------- */
 .topbar{
   position:relative; z-index:5;
-  display:flex; align-items:center; gap:10px;
-  padding:12px 12px;
+  display:flex; align-items:center; gap:7px;
+  padding:12px 10px;
 }
 .levelBadge{
   display:flex; flex-direction:column; align-items:center; gap:3px;
@@ -63,23 +63,24 @@ body{
 .xpFill{height:100%; width:0%; background:linear-gradient(90deg, var(--gold), var(--coral)); transition:width .3s ease;}
 
 .resBar{
-  flex:1; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none;
-  background:var(--panel); border-radius:16px; padding:7px 8px;
+  flex:1; display:flex; gap:4px; overflow-x:auto; scrollbar-width:none;
+  background:var(--panel); border-radius:16px; padding:7px 6px;
   box-shadow:var(--shadow);
+  min-width:0;
 }
 .resBar::-webkit-scrollbar{display:none;}
 .resPill{
-  display:flex; align-items:center; gap:4px;
-  font-family:var(--display); font-weight:700; font-size:13px;
-  padding:3px 8px; border-radius:999px; background:var(--panel-warm);
+  display:flex; align-items:center; gap:3px;
+  font-family:var(--display); font-weight:700; font-size:12px;
+  padding:3px 6px; border-radius:999px; background:var(--panel-warm);
   white-space:nowrap; flex-shrink:0;
 }
-.resIcon{font-size:14px;}
+.resIcon{font-size:13px;}
 
 .iconbtn{
-  width:38px; height:38px; border-radius:13px; flex-shrink:0;
+  width:36px; height:36px; border-radius:12px; flex-shrink:0;
   background:var(--panel); border:none; box-shadow:var(--shadow);
-  font-size:16px; color:var(--ink); cursor:pointer;
+  font-size:15px; color:var(--ink); cursor:pointer;
   display:grid; place-items:center;
 }
 .iconbtn:active{transform:scale(.94);}
@@ -99,6 +100,7 @@ body{
   width:var(--tw); height:var(--th);
   transform:translate(-50%,-50%);
   cursor:pointer;
+  transition:left .32s ease, top .32s ease;
 }
 .tileDiamond{
   position:absolute; inset:0;
