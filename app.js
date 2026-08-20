@@ -485,9 +485,40 @@ function rotateView() {
   }
 }
 
-/* ---------- panning ---------- */
+/* ---------- panning + zoom ---------- */
+const MIN_SCALE = 0.5;
+const MAX_SCALE = 1.9;
+let scale = 1;
+const activePointers = new Map();
+let pinchStartDist = 0;
+let pinchStartScale = 1;
+let pinchStartPan = { x: 0, y: 0 };
+let pinchAnchor = { x: 0, y: 0 }; // viewport-relative reference point (world origin)
+
 function applyPan() {
-  $("world").style.transform = `translate(${pan.x}px, ${pan.y}px)`;
+  $("world").style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${scale})`;
+}
+
+function viewportOrigin() {
+  const vpRect = $("viewport").getBoundingClientRect();
+  return { x: vpRect.left + vpRect.width * 0.5, y: vpRect.top + vpRect.height * 0.46 };
+}
+
+function zoomAround(clientX, clientY, newScale) {
+  const o = viewportOrigin();
+  const px = clientX - o.x;
+  const py = clientY - o.y;
+  const s0 = scale;
+  const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, newScale));
+  pan.x = px - ((px - pan.x) / s0) * clamped;
+  pan.y = py - ((py - pan.y) / s0) * clamped;
+  scale = clamped;
+  applyPan();
+}
+
+function zoomButton(factor) {
+  const vpRect = $("viewport").getBoundingClientRect();
+  zoomAround(vpRect.left + vpRect.width / 2, vpRect.top + vpRect.height / 2, scale * factor);
 }
 
 function wirePanning() {
@@ -495,13 +526,43 @@ function wirePanning() {
   let down = false, moved = false, startX = 0, startY = 0, origX = 0, origY = 0;
 
   viewport.addEventListener("pointerdown", (e) => {
-    down = true; moved = false;
-    startX = e.clientX; startY = e.clientY;
-    origX = pan.x; origY = pan.y;
     viewport.setPointerCapture(e.pointerId);
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 2) {
+      down = false;
+      const pts = Array.from(activePointers.values());
+      pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      pinchStartScale = scale;
+      pinchStartPan = { x: pan.x, y: pan.y };
+      pinchAnchor = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+    } else if (activePointers.size === 1) {
+      down = true; moved = false;
+      startX = e.clientX; startY = e.clientY;
+      origX = pan.x; origY = pan.y;
+    }
   });
 
   viewport.addEventListener("pointermove", (e) => {
+    if (!activePointers.has(e.pointerId)) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 2) {
+      const pts = Array.from(activePointers.values());
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+      const targetScale = pinchStartScale * (dist / (pinchStartDist || 1));
+      const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, targetScale));
+      const o = viewportOrigin();
+      const px = pinchAnchor.x - o.x;
+      const py = pinchAnchor.y - o.y;
+      pan.x = px - ((px - pinchStartPan.x) / pinchStartScale) * clamped + (mid.x - pinchAnchor.x);
+      pan.y = py - ((py - pinchStartPan.y) / pinchStartScale) * clamped + (mid.y - pinchAnchor.y);
+      scale = clamped;
+      applyPan();
+      return;
+    }
+
     if (!down) return;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
@@ -512,7 +573,13 @@ function wirePanning() {
   });
 
   const end = (e) => {
-    if (!down) return;
+    activePointers.delete(e.pointerId);
+    if (activePointers.size >= 1) {
+      // still at least one finger down: restart single-drag reference from here
+      down = false;
+      return;
+    }
+    if (!down) { down = false; return; }
     down = false;
     if (!moved) {
       const tile = pickTileAt(e.clientX, e.clientY);
@@ -521,14 +588,21 @@ function wirePanning() {
   };
   viewport.addEventListener("pointerup", end);
   viewport.addEventListener("pointercancel", end);
+
+  viewport.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const factor = Math.exp(-e.deltaY * 0.0018);
+    zoomAround(e.clientX, e.clientY, scale * factor);
+  }, { passive: false });
+
+  $("btnZoomIn").addEventListener("click", () => zoomButton(1.25));
+  $("btnZoomOut").addEventListener("click", () => zoomButton(0.8));
 }
 
 function pickTileAt(clientX, clientY) {
-  const vpRect = $("viewport").getBoundingClientRect();
-  const originX = vpRect.left + vpRect.width * 0.5 + pan.x;
-  const originY = vpRect.top + vpRect.height * 0.46 + pan.y;
-  const relX = clientX - originX;
-  const relY = clientY - originY;
+  const o = viewportOrigin();
+  const relX = (clientX - o.x - pan.x) / scale;
+  const relY = (clientY - o.y - pan.y) / scale;
   const rcf = (relX / (TILE_W / 2) + relY / (TILE_H / 2)) / 2;
   const rrf = (relY / (TILE_H / 2) - relX / (TILE_W / 2)) / 2;
   const [c, r] = unrotateCoord(Math.round(rcf), Math.round(rrf));
