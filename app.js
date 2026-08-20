@@ -145,7 +145,13 @@ function countBuildings(buildingId) {
 function unlockCost(kind) {
   const landCount = Object.values(state.tiles).filter((t) => t.type === "land").length;
   const waterCount = Object.values(state.tiles).filter((t) => t.type === "water").length;
-  if (kind === "land") return { wood: 15 + landCount * 5 };
+  if (kind === "land") {
+    const growth = Math.round(landCount * 1.5);
+    const cost = { wood: 6 + growth };
+    if (state.level >= 2) cost.food = 5 + growth; // ферма вже доступна
+    if (state.level >= 3) cost.stone = 5 + growth; // копальня вже доступна
+    return cost;
+  }
   return { gold: 10 + waterCount * 3 };
 }
 
