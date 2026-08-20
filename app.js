@@ -687,11 +687,30 @@ function renderWorld() {
   updateBadges();
 }
 
+function tileZoneKey(tile) {
+  if (!tile || !tile.building) return "empty";
+  const id = tile.building.id;
+  if (id === "sawmill") return "forest";
+  if (id === "farm") return "farm";
+  if (id === "dock") return "dock";
+  return "buildings";
+}
+
+function hasSameZoneNeighbor(c, r, zoneKey) {
+  for (const [nc, nr] of neighbors4(c, r)) {
+    const nt = state.tiles[coordKey(nc, nr)];
+    if (nt && tileZoneKey(nt) === zoneKey) return true;
+  }
+  return false;
+}
+
 function buildTileEl(c, r, cssType, tile) {
   const { x, y } = isoPos(c, r);
   const isDock = tile && tile.building && tile.building.id === "dock";
+  const zoneKey = tileZoneKey(tile);
+  const zoneClass = zoneKey !== "empty" && zoneKey !== "dock" ? ` zone-${zoneKey}` : "";
   const el = document.createElement("div");
-  el.className = `tile ${cssType}${isDock ? " dockTile" : ""}`;
+  el.className = `tile ${cssType}${isDock ? " dockTile" : ""}${zoneClass}`;
   el.style.left = x + "px";
   el.style.top = y + "px";
   el.dataset.c = c;
@@ -702,9 +721,12 @@ function buildTileEl(c, r, cssType, tile) {
   el.appendChild(diamond);
 
   if (cssType === "land" || cssType === "water") {
-    const edge = document.createElement("div");
-    edge.className = "tileEdge";
-    el.appendChild(edge);
+    const merged = zoneKey !== "empty" && hasSameZoneNeighbor(c, r, zoneKey);
+    if (!merged) {
+      const edge = document.createElement("div");
+      edge.className = "tileEdge";
+      el.appendChild(edge);
+    }
   }
 
   if (cssType === "lockedLand" || cssType === "lockedWater") {
@@ -851,6 +873,19 @@ function collectAll() {
 }
 
 /* ---------- unlock sheet ---------- */
+const ZONE_DEFS = {
+  forest: { label: "Ліс", icon: "🌲", buildingId: "sawmill" },
+  farm: { label: "Город", icon: "🌾", buildingId: "farm" },
+  dock: { label: "Причал", icon: "⚓", buildingId: "dock" },
+  plain: { label: "Забудова", icon: "🏠", buildingId: null },
+};
+
+function mergeCosts(a, b) {
+  const out = { ...a };
+  Object.entries(b).forEach(([res, amt]) => { out[res] = (out[res] || 0) + amt; });
+  return out;
+}
+
 function openUnlockSheet(c, r, kind) {
   sheetContext = { kind: "unlock", c, r, unlockKind: kind };
   const isWater = kind === "water";
@@ -860,32 +895,48 @@ function openUnlockSheet(c, r, kind) {
     openSheet();
     return;
   }
-  const cost = unlockCost(kind);
-  const afford = canAfford(cost);
+
+  const unlockCostBase = unlockCost(kind);
   $("sheetTitle").textContent = isWater ? "Освоїти воду" : "Розширити острів";
   $("buildList").innerHTML = "";
-  const opt = document.createElement("div");
-  opt.className = "buildOption" + (afford ? "" : " disabled");
-  opt.innerHTML = `
-    <div class="buildOptIcon">${isWater ? "🌊" : "🏝️"}</div>
-    <div class="buildOptInfo">
-      <div class="buildOptName">${isWater ? "Платформа на воді" : "Нова ділянка землі"}</div>
-      <div class="buildOptDesc">${isWater ? "Відкриває клітинку для забудови на воді" : "Відкриває нову клітинку землі"}</div>
-      <div class="buildOptCost">${costChips(cost, afford)}</div>
-    </div>
-  `;
-  opt.addEventListener("click", () => {
-    if (!canAfford(cost)) return;
-    spend(cost);
-    state.tiles[coordKey(c, r)] = { type: isWater ? "water" : "land", building: null };
-    gainXP(8);
-    repositionBoatsIfTooClose();
-    renderWorld();
-    updateHeader();
-    saveGame();
-    closeSheet();
-  });
-  $("buildList").appendChild(opt);
+
+  const zoneKeys = isWater ? ["plain", "dock"] : ["plain", "forest", "farm", "dock"];
+  for (const zoneKey of zoneKeys) {
+    const zone = ZONE_DEFS[zoneKey];
+    const buildingDef = zone.buildingId ? BUILDING_DEFS[zone.buildingId] : null;
+    const levelOk = !buildingDef || state.level >= buildingDef.unlockLevel;
+    if (!levelOk) continue;
+
+    const cost = buildingDef ? mergeCosts(unlockCostBase, scaledCost(zone.buildingId)) : unlockCostBase;
+    const afford = canAfford(cost);
+    const opt = document.createElement("div");
+    opt.className = "buildOption" + (afford ? "" : " disabled");
+    opt.innerHTML = `
+      <div class="buildOptIcon">${zone.icon}</div>
+      <div class="buildOptInfo">
+        <div class="buildOptName">${zone.label}</div>
+        <div class="buildOptDesc">${buildingDef ? `Клітинка одразу з готовою будівлею: ${buildingDef.name}` : (isWater ? "Відкриває клітинку для забудови на воді" : "Відкриває нову клітинку землі")}</div>
+        <div class="buildOptCost">${costChips(cost, afford)}</div>
+      </div>
+    `;
+    opt.addEventListener("click", () => {
+      if (!canAfford(cost)) return;
+      spend(cost);
+      const tile = { type: isWater ? "water" : "land", building: null };
+      if (zone.buildingId) {
+        tile.building = { id: zone.buildingId, lastCollect: Date.now() };
+        if (zone.buildingId === "dock") state.hasDock = true;
+      }
+      state.tiles[coordKey(c, r)] = tile;
+      gainXP(zone.buildingId ? 20 : 8);
+      repositionBoatsIfTooClose();
+      renderWorld();
+      updateHeader();
+      saveGame();
+      closeSheet();
+    });
+    $("buildList").appendChild(opt);
+  }
   openSheet();
 }
 
@@ -1115,7 +1166,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 17;
+const CURRENT_BUILD = 18;
 
 async function checkForUpdate() {
   try {

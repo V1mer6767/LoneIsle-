@@ -134,6 +134,11 @@ body{
     linear-gradient(160deg, #9aa1ab, #5e6570);
 }
 .tile.dockTile .tileEdge{background:#4a4f58;}
+
+.tile.zone-forest .tileDiamond{background:linear-gradient(160deg, #4a9c3f, #2c6b24);}
+.tile.zone-forest .tileEdge{background:#265c1f;}
+.tile.zone-farm .tileDiamond{background:linear-gradient(160deg, #d4a24c, #a97c2e);}
+.tile.zone-farm .tileEdge{background:#8f6a26;}
 .tile.water .tileDiamond{
   background:
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22'><path d='M0 11 Q5.5 5 11 11 T22 11 T33 11 T44 11' stroke='white' stroke-opacity='0.5' stroke-width='2' fill='none'/></svg>"),
