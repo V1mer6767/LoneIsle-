@@ -243,25 +243,32 @@ function repositionBoatsIfTooClose() {
   if (moved) saveGame();
 }
 
-function boatCost() {
-  const mult = 1 + state.boats.length * 0.1;
-  const base = BUILDING_DEFS.boat.baseCost;
-  const cost = {};
-  Object.entries(base).forEach(([res, amt]) => { cost[res] = Math.round(amt * mult); });
-  return cost;
-}
+const MAX_BOATS = 3;
+const BOAT_RENT_MS = 10 * 60 * 1000;
+const BOAT_RENT_COST = { wood: 20, gold: 15 };
 
-function hireBoat() {
-  const cost = boatCost();
-  if (!canAfford(cost)) return;
-  spend(cost);
+function rentBoat() {
+  if (state.boats.length >= MAX_BOATS) return;
+  if (!canAfford(BOAT_RENT_COST)) return;
+  spend(BOAT_RENT_COST);
   const pos = boatGridPos(state.boats.length);
-  state.boats.push({ id: uid(), lastCollect: Date.now(), gc: pos.c, gr: pos.r });
+  state.boats.push({ id: uid(), lastCollect: Date.now(), gc: pos.c, gr: pos.r, expiresAt: Date.now() + BOAT_RENT_MS });
   gainXP(15);
   renderWorld();
   updateHeader();
   saveGame();
   renderBoatSheet();
+}
+
+function expireBoats() {
+  const now = Date.now();
+  const before = state.boats.length;
+  state.boats = state.boats.filter((b) => (b.expiresAt || Infinity) > now);
+  if (state.boats.length !== before) {
+    renderWorld();
+    saveGame();
+    if ($("boatSheet").style.display !== "none") renderBoatSheet();
+  }
 }
 
 function collectBoat(boatId) {
@@ -275,7 +282,6 @@ function collectBoat(boatId) {
   gainXP(2);
   const { x, y } = isoPos(boat.gc, boat.gr);
   spawnFloatTextAt(x, y, `+${ready} ${RES_ICON[def.produce.res]}`);
-  updateBadges();
   updateHeader();
   saveGame();
 }
@@ -322,34 +328,53 @@ function closeMoreSheet() {
   $("moreSheet").style.display = "none";
 }
 
+function formatDuration(ms) {
+  const totalMin = Math.max(0, Math.ceil(ms / 60000));
+  return totalMin >= 1 ? `${totalMin} хв` : "менше хв";
+}
+
 function renderBoatSheet() {
   const locked = state.level < BUILDING_DEFS.boat.unlockLevel;
   $("boatLocked").style.display = locked ? "block" : "none";
   $("boatUnlocked").style.display = locked ? "none" : "block";
   if (locked) return;
 
-  const cost = boatCost();
-  const afford = canAfford(cost);
+  const afford = canAfford(BOAT_RENT_COST);
+  const atCap = state.boats.length >= MAX_BOATS;
   const list = $("boatList");
   list.innerHTML = "";
 
   const info = document.createElement("div");
   info.className = "buildOptDesc";
   info.style.padding = "0 2px 10px";
-  info.textContent = `Найнятих човнів: ${state.boats.length}. Кожен ловить рибу (їжу) з часом.`;
+  info.textContent = `Орендовано човнів: ${state.boats.length} / ${MAX_BOATS}. Кожен ловить рибу (їжу), поки оренда активна — потім зникає.`;
   list.appendChild(info);
 
+  for (const boat of state.boats) {
+    const remaining = (boat.expiresAt || Date.now()) - Date.now();
+    const row = document.createElement("div");
+    row.className = "buildOption";
+    row.innerHTML = `
+      <div class="buildOptIcon">⛵</div>
+      <div class="buildOptInfo">
+        <div class="buildOptName">Орендований човен</div>
+        <div class="buildOptDesc">Залишилось: ${formatDuration(remaining)}</div>
+      </div>
+    `;
+    list.appendChild(row);
+  }
+
   const opt = document.createElement("div");
-  opt.className = "buildOption" + (afford ? "" : " disabled");
+  opt.className = "buildOption" + (afford && !atCap ? "" : " disabled");
   opt.innerHTML = `
     <div class="buildOptIcon">⛵</div>
     <div class="buildOptInfo">
-      <div class="buildOptName">Найняти човен</div>
-      <div class="buildOptDesc">${BUILDING_DEFS.boat.desc}</div>
-      <div class="buildOptCost">${costChips(cost, afford)}</div>
+      <div class="buildOptName">Орендувати човен</div>
+      <div class="buildOptDesc">${atCap ? `Максимум ${MAX_BOATS} одночасно` : `На ${BOAT_RENT_MS / 60000} хв — ${BUILDING_DEFS.boat.desc}`}</div>
+      <div class="buildOptCost">${atCap ? "" : costChips(BOAT_RENT_COST, afford)}</div>
     </div>
   `;
-  opt.addEventListener("click", hireBoat);
+  if (!atCap) opt.addEventListener("click", rentBoat);
   list.appendChild(opt);
 }
 
@@ -1124,7 +1149,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 22;
+const CURRENT_BUILD = 23;
 
 async function checkForUpdate() {
   try {
@@ -1198,6 +1223,7 @@ function init() {
   state = loaded;
   wire();
   registerSW();
+  expireBoats();
   renderWorld();
   updateHeader();
 
@@ -1213,6 +1239,7 @@ function init() {
 
   setInterval(tickWorkers, 1200);
   setInterval(saveGame, 8000);
+  setInterval(expireBoats, 15000);
 
   checkForUpdate();
   setInterval(checkForUpdate, 5 * 60 * 1000);
