@@ -108,6 +108,12 @@ body{
   transition:filter .12s;
 }
 .tile.land .tileDiamond{background:linear-gradient(160deg, var(--grass), var(--grass-dark));}
+.tile.dockTile .tileDiamond{
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 3px, transparent 3px 14px),
+    linear-gradient(160deg, #9aa1ab, #5e6570);
+}
+.tile.dockTile .tileEdge{background:#4a4f58;}
 .tile.water .tileDiamond{
   background:
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22'><path d='M0 11 Q5.5 5 11 11 T22 11 T33 11 T44 11' stroke='white' stroke-opacity='0.5' stroke-width='2' fill='none'/></svg>"),
@@ -149,6 +155,30 @@ body{
   position:absolute; left:50%; top:38%; transform:translate(-50%,-60%);
   font-size:calc(var(--th)*0.62); pointer-events:none;
   filter:drop-shadow(0 4px 4px rgba(0,0,0,.25));
+}
+.buildingIcon.dockIcon{ left:62%; }
+
+.dockShed{
+  position:absolute; left:36%; top:34%; transform:translate(-50%,-50%);
+  width:15px; height:13px;
+  background:linear-gradient(180deg, #a9764f, #7a5136);
+  border-radius:1px;
+  pointer-events:none;
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.3));
+}
+.dockShed::before{
+  content:"";
+  position:absolute; left:50%; top:-8px; transform:translateX(-50%);
+  width:0; height:0;
+  border-left:9px solid transparent;
+  border-right:9px solid transparent;
+  border-bottom:7px solid #5c3c26;
+}
+.dockShed::after{
+  content:"";
+  position:absolute; left:50%; top:2px; transform:translateX(-50%);
+  width:5px; height:8px;
+  background:#3c2a1c;
 }
 
 .collectBadge{

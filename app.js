@@ -354,8 +354,9 @@ function renderWorld() {
 
 function buildTileEl(c, r, cssType, tile) {
   const { x, y } = isoPos(c, r);
+  const isDock = tile && tile.building && tile.building.id === "dock";
   const el = document.createElement("div");
-  el.className = `tile ${cssType}`;
+  el.className = `tile ${cssType}${isDock ? " dockTile" : ""}`;
   el.style.left = x + "px";
   el.style.top = y + "px";
   el.dataset.c = c;
@@ -379,8 +380,13 @@ function buildTileEl(c, r, cssType, tile) {
   }
 
   if (tile && tile.building) {
+    if (isDock) {
+      const shed = document.createElement("div");
+      shed.className = "dockShed";
+      el.appendChild(shed);
+    }
     const icon = document.createElement("div");
-    icon.className = "buildingIcon";
+    icon.className = "buildingIcon" + (isDock ? " dockIcon" : "");
     icon.textContent = BUILDING_DEFS[tile.building.id].icon;
     el.appendChild(icon);
   }
