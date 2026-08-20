@@ -1166,7 +1166,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 18;
+const CURRENT_BUILD = 19;
 
 async function checkForUpdate() {
   try {

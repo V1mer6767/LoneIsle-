@@ -29,6 +29,15 @@ body{
   position:relative;
   height:100vh;
   touch-action:none;
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+}
+input, textarea{
+  -webkit-user-select:text;
+  user-select:text;
+  -webkit-touch-callout:default;
 }
 
 .sky{
