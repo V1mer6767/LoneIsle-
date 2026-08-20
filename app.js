@@ -198,10 +198,48 @@ function computeFrontier() {
 /* ---------- fishing boats ---------- */
 const boatEls = new Map();
 
-function boatGridPos(index) {
-  const angle = index * 137.5 * (Math.PI / 180);
-  const radius = 3.3 + index * 0.55;
-  return { c: Math.cos(angle) * radius, r: Math.sin(angle) * radius };
+const BOAT_LAND_MARGIN = 1.7;
+
+function isFarEnoughFromLand(c, r, margin) {
+  for (const key of Object.keys(state.tiles)) {
+    const [tc, tr] = key.split(",").map(Number);
+    if (Math.hypot(c - tc, r - tr) < margin) return false;
+  }
+  return true;
+}
+
+function boatGridPos(index, startAngle, startRadius) {
+  const angle = startAngle !== undefined ? startAngle : index * 137.5 * (Math.PI / 180);
+  let radius = startRadius !== undefined ? startRadius : 3.3 + index * 0.55;
+  let c = Math.cos(angle) * radius;
+  let r = Math.sin(angle) * radius;
+  let guard = 0;
+  while (!isFarEnoughFromLand(c, r, BOAT_LAND_MARGIN) && guard < 80) {
+    radius += 0.5;
+    c = Math.cos(angle) * radius;
+    r = Math.sin(angle) * radius;
+    guard++;
+  }
+  return { c, r };
+}
+
+function repositionBoatsIfTooClose() {
+  let moved = false;
+  for (const boat of state.boats) {
+    if (isFarEnoughFromLand(boat.gc, boat.gr, BOAT_LAND_MARGIN)) continue;
+    const angle = Math.atan2(boat.gr, boat.gc);
+    const currentRadius = Math.hypot(boat.gc, boat.gr);
+    const pos = boatGridPos(null, angle, currentRadius);
+    boat.gc = pos.c;
+    boat.gr = pos.r;
+    moved = true;
+    const { x, y } = isoPos(pos.c, pos.r);
+    const boatEl = boatEls.get(boat.id);
+    if (boatEl) { boatEl.style.left = x + "px"; boatEl.style.top = y + "px"; }
+    const badge = badgeEls.get(`boat:${boat.id}`);
+    if (badge) { badge.style.left = x + "px"; badge.style.top = y - 34 + "px"; }
+  }
+  if (moved) saveGame();
 }
 
 function boatCost() {
@@ -502,6 +540,7 @@ function buyNextIsland() {
   state.islandsBought = n;
 
   gainXP(50);
+  repositionBoatsIfTooClose();
   renderWorld();
   updateHeader();
   saveGame();
@@ -831,6 +870,7 @@ function openUnlockSheet(c, r, kind) {
     spend(cost);
     state.tiles[coordKey(c, r)] = { type: isWater ? "water" : "land", building: null };
     gainXP(8);
+    repositionBoatsIfTooClose();
     renderWorld();
     updateHeader();
     saveGame();
@@ -1060,7 +1100,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 14;
+const CURRENT_BUILD = 15;
 
 async function checkForUpdate() {
   try {

@@ -303,6 +303,7 @@ body{
   filter:drop-shadow(0 5px 5px rgba(0,0,0,.28));
   cursor:pointer;
   animation:boatBob 3.4s ease-in-out infinite;
+  transition:left .8s ease, top .8s ease;
   z-index:3;
 }
 @keyframes boatBob{
