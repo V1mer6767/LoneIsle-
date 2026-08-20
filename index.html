@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#4fb0e8" />
+<title>LoneIsle</title>
+
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
+<link rel="apple-touch-icon" href="./icons/icon-180.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="sky" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="levelBadge">
+    <div class="levelNum" id="levelNum">1</div>
+    <div class="xpTrack"><div class="xpFill" id="xpFill"></div></div>
+  </div>
+
+  <div class="resBar" id="resBar">
+    <div class="resPill" data-res="wood"><span class="resIcon">🌲</span><span id="resWood">0</span></div>
+    <div class="resPill" data-res="stone"><span class="resIcon">🪨</span><span id="resStone">0</span></div>
+    <div class="resPill" data-res="food"><span class="resIcon">🌾</span><span id="resFood">0</span></div>
+    <div class="resPill" data-res="gold"><span class="resIcon">🪙</span><span id="resGold">0</span></div>
+  </div>
+
+  <button id="btnRefresh" class="iconbtn" title="Оновити">↻</button>
+</header>
+
+<main class="viewport" id="viewport">
+  <div class="world" id="world"></div>
+</main>
+
+<div class="floaters" id="floaters"></div>
+
+<!-- Build sheet -->
+<div id="buildSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle" id="sheetTitle">Будувати</div>
+  <div class="buildList" id="buildList"></div>
+  <button id="btnCloseSheet" class="btn ghost full">Закрити</button>
+</div>
+<div id="sheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+
+<!-- Level up overlay -->
+<div id="levelUpOverlay" class="levelUpOverlay" style="display:none;">
+  <div class="levelUpCard">
+    <div class="levelUpTitle">Новий рівень!</div>
+    <div class="levelUpLv" id="levelUpLv">LV.2</div>
+    <div class="levelUpUnlock" id="levelUpUnlock"></div>
+    <button id="btnLevelUpClose" class="btn primary full">Круто!</button>
+  </div>
+</div>
+
+<!-- Welcome back overlay -->
+<div id="welcomeOverlay" class="levelUpOverlay" style="display:none;">
+  <div class="levelUpCard">
+    <div class="levelUpTitle">З поверненням! 👋</div>
+    <div class="welcomeText" id="welcomeText"></div>
+    <button id="btnWelcomeClose" class="btn primary full">Дякую</button>
+  </div>
+</div>
+
+<div class="buildStamp" id="buildStamp">build v1</div>
+
+<script src="app.js"></script>
+</body>
+</html>
