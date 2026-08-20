@@ -293,14 +293,6 @@ function renderBoats() {
     el.dataset.boatId = boat.id;
     world.appendChild(el);
     boatEls.set(boat.id, el);
-
-    const badge = document.createElement("div");
-    badge.className = "collectBadge";
-    badge.style.left = x + "px";
-    badge.style.top = y - 34 + "px";
-    badge.style.display = "none";
-    world.appendChild(badge);
-    badgeEls.set(`boat:${boat.id}`, badge);
   }
 }
 
@@ -652,21 +644,6 @@ function renderWorld() {
     tileEls.set(key, el);
   }
 
-  for (const [key, tile] of Object.entries(state.tiles)) {
-    if (!tile.building) continue;
-    const def = BUILDING_DEFS[tile.building.id];
-    if (!def.produce) continue;
-    const [c, r] = key.split(",").map(Number);
-    const { x, y } = isoPos(c, r);
-    const badge = document.createElement("div");
-    badge.className = "collectBadge";
-    badge.style.left = x + "px";
-    badge.style.top = y - TILE_H * 0.75 + "px";
-    badge.style.display = "none";
-    world.appendChild(badge);
-    badgeEls.set(key, badge);
-  }
-
   dockShedEls.clear();
   for (const [key, tile] of Object.entries(state.tiles)) {
     if (!tile.building || tile.building.id !== "dock") continue;
@@ -750,31 +727,10 @@ function buildTileEl(c, r, cssType, tile) {
 }
 
 function updateBadges() {
-  for (const [key, tile] of Object.entries(state.tiles)) {
-    if (!tile.building) continue;
-    const def = BUILDING_DEFS[tile.building.id];
-    if (!def.produce) continue;
-    const badge = badgeEls.get(key);
-    if (!badge) continue;
-    const ready = readyAmount(tile.building);
-    if (ready > 0) {
-      badge.style.display = "flex";
-      badge.textContent = `+${ready} ${RES_ICON[def.produce.res]}`;
-    } else {
-      badge.style.display = "none";
-    }
-  }
-  for (const boat of state.boats) {
-    const badge = badgeEls.get(`boat:${boat.id}`);
-    if (!badge) continue;
-    const ready = readyAmount({ id: "boat", lastCollect: boat.lastCollect });
-    if (ready > 0) {
-      badge.style.display = "flex";
-      badge.textContent = `+${ready} ${RES_ICON.food}`;
-    } else {
-      badge.style.display = "none";
-    }
-  }
+  // Disabled: the floating "+N" collect badges were a source of lag
+  // while panning (continuously-animated elements repositioning on
+  // every drag frame). Tapping still collects fine without them, and
+  // hired workers already auto-collect anyway.
 }
 
 function updateHeader() {
@@ -1168,7 +1124,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 21;
+const CURRENT_BUILD = 22;
 
 async function checkForUpdate() {
   try {
@@ -1255,7 +1211,6 @@ function init() {
   }
   saveGame();
 
-  setInterval(updateBadges, 1200);
   setInterval(tickWorkers, 1200);
   setInterval(saveGame, 8000);
 
