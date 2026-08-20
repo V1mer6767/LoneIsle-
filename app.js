@@ -1100,7 +1100,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 15;
+const CURRENT_BUILD = 16;
 
 async function checkForUpdate() {
   try {
@@ -1187,8 +1187,8 @@ function init() {
   }
   saveGame();
 
-  setInterval(updateBadges, 1000);
-  setInterval(tickWorkers, 1000);
+  setInterval(updateBadges, 1200);
+  setInterval(tickWorkers, 1200);
   setInterval(saveGame, 8000);
 
   checkForUpdate();

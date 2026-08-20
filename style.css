@@ -33,16 +33,21 @@ body{
 
 .sky{
   position:fixed; inset:0; z-index:0;
-  background:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='80'><path d='M0 20 Q20 8 40 20 T80 20 T120 20 T160 20' stroke='white' stroke-opacity='0.55' stroke-width='3' fill='none'/><path d='M0 55 Q20 43 40 55 T80 55 T120 55 T160 55' stroke='white' stroke-opacity='0.32' stroke-width='3' fill='none'/></svg>"),
-    linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 55%, #2f8fd0 100%);
-  background-size:160px 80px, 100% 100%;
-  background-repeat:repeat, no-repeat;
+  background:linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 55%, #2f8fd0 100%);
+  overflow:hidden;
+}
+.sky::after{
+  content:"";
+  position:absolute; top:0; left:-160px;
+  width:calc(100% + 320px); height:100%;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='80'><path d='M0 20 Q20 8 40 20 T80 20 T120 20 T160 20' stroke='white' stroke-opacity='0.55' stroke-width='3' fill='none'/><path d='M0 55 Q20 43 40 55 T80 55 T120 55 T160 55' stroke='white' stroke-opacity='0.32' stroke-width='3' fill='none'/></svg>") repeat;
+  background-size:160px 80px;
+  will-change:transform;
   animation:seaFlow 10s linear infinite;
 }
 @keyframes seaFlow{
-  from{ background-position:0 0, 0 0; }
-  to{ background-position:-160px 0, 0 0; }
+  from{ transform:translateX(0); }
+  to{ transform:translateX(-160px); }
 }
 
 /* ---------- header ---------- */
@@ -135,7 +140,6 @@ body{
     linear-gradient(160deg, var(--water), var(--water-dark));
   background-size:44px 22px, 100% 100%;
   background-repeat:repeat, no-repeat;
-  animation:tileWaveFlow 2.6s linear infinite;
 }
 .tile.lockedLand .tileDiamond{background:linear-gradient(160deg, var(--sand), var(--sand-dark)); opacity:.55;}
 .tile.lockedWater .tileDiamond{
@@ -145,11 +149,6 @@ body{
   background-size:44px 22px, 100% 100%;
   background-repeat:repeat, no-repeat;
   opacity:.5;
-  animation:tileWaveFlow 2.6s linear infinite;
-}
-@keyframes tileWaveFlow{
-  from{ background-position:0 0, 0 0; }
-  to{ background-position:-44px 0, 0 0; }
 }
 .tile:active .tileDiamond{filter:brightness(1.12);}
 
