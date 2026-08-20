@@ -77,6 +77,13 @@ function loadGame() {
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.tiles) return { state: defaultState(), gapMs: 0 };
     if (!Array.isArray(parsed.boats)) parsed.boats = [];
+    const now0 = Date.now();
+    parsed.boats.forEach((b) => {
+      if (typeof b.expiresAt !== "number") b.expiresAt = now0 + BOAT_RENT_MS;
+    });
+    if (parsed.boats.length > MAX_BOATS) {
+      parsed.boats = parsed.boats.slice(-MAX_BOATS);
+    }
     if (!parsed.workers || typeof parsed.workers !== "object") parsed.workers = {};
     if (typeof parsed.islandsBought !== "number") {
       parsed.islandsBought = parsed.secondIslandBought ? 1 : 0;
@@ -351,7 +358,7 @@ function renderBoatSheet() {
   list.appendChild(info);
 
   for (const boat of state.boats) {
-    const remaining = (boat.expiresAt || Date.now()) - Date.now();
+    const remaining = (typeof boat.expiresAt === "number" ? boat.expiresAt : Date.now() + BOAT_RENT_MS) - Date.now();
     const row = document.createElement("div");
     row.className = "buildOption";
     row.innerHTML = `
@@ -1149,7 +1156,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 23;
+const CURRENT_BUILD = 24;
 
 async function checkForUpdate() {
   try {
