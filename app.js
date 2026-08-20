@@ -1030,6 +1030,26 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
+const CURRENT_BUILD = 11;
+
+async function checkForUpdate() {
+  try {
+    const res = await fetch("./version.json?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    const diff = (data.build || CURRENT_BUILD) - CURRENT_BUILD;
+    const badge = $("updateBadge");
+    if (diff > 0) {
+      badge.textContent = diff > 9 ? "9+" : String(diff);
+      badge.style.display = "flex";
+    } else {
+      badge.style.display = "none";
+    }
+  } catch {
+    // offline or blocked — silently skip, no badge
+  }
+}
+
 function hardRefresh() {
   const btn = $("btnRefresh");
   if (btn) { btn.textContent = "⏳"; btn.disabled = true; }
@@ -1093,6 +1113,12 @@ function init() {
   setInterval(updateBadges, 1000);
   setInterval(tickWorkers, 1000);
   setInterval(saveGame, 8000);
+
+  checkForUpdate();
+  setInterval(checkForUpdate, 5 * 60 * 1000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkForUpdate();
+  });
 }
 
 init();
