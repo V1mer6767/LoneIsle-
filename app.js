@@ -24,9 +24,17 @@ const WORKER_DEFS = {
 };
 const WORKER_CYCLE_MS = 3500;
 
-const SECOND_ISLAND_CENTER = { c: 7, r: -3 };
-const SECOND_ISLAND_COST = { wood: 200, stone: 80, gold: 60 };
-const SECOND_ISLAND_LEVEL = 7;
+const ISLAND_CENTERS = [
+  { c: 0, r: 0 },   // головний острів (завжди твій)
+  { c: 7, r: -3 },  // 2-й
+  { c: 3, r: 9 },   // 3-й
+  { c: -9, r: 4 },  // 4-й
+  { c: -4, r: -10 }, // 5-й
+  { c: 12, r: 7 },  // 6-й
+];
+const ISLAND_LEVEL_REQ = [0, 7, 9, 11, 13, 15];
+const ISLAND_BASE_COST = { wood: 200, stone: 80, gold: 60 };
+const ISLAND_COST_MULT = 1.7;
 
 let state = null;
 const tileEls = new Map();
@@ -56,7 +64,7 @@ function defaultState() {
     hasDock: false,
     boats: [],
     workers: {},
-    secondIslandBought: false,
+    islandsBought: 0,
     lastSaveAt: now,
   };
 }
@@ -69,7 +77,10 @@ function loadGame() {
     if (!parsed || !parsed.tiles) return { state: defaultState(), gapMs: 0 };
     if (!Array.isArray(parsed.boats)) parsed.boats = [];
     if (!parsed.workers || typeof parsed.workers !== "object") parsed.workers = {};
-    if (typeof parsed.secondIslandBought !== "boolean") parsed.secondIslandBought = false;
+    if (typeof parsed.islandsBought !== "number") {
+      parsed.islandsBought = parsed.secondIslandBought ? 1 : 0;
+    }
+    delete parsed.secondIslandBought;
     const gapMs = Date.now() - (parsed.lastSaveAt || Date.now());
     return { state: parsed, gapMs };
   } catch {
@@ -463,21 +474,32 @@ function renderWorkerSheet() {
   }
 }
 
-/* ---------- second island ---------- */
-function buySecondIsland() {
-  if (state.secondIslandBought) return;
-  if (state.level < SECOND_ISLAND_LEVEL) return;
-  if (!canAfford(SECOND_ISLAND_COST)) return;
-  spend(SECOND_ISLAND_COST);
+/* ---------- extra islands ---------- */
+function islandCost(n) {
+  const mult = Math.pow(ISLAND_COST_MULT, n - 1);
+  const cost = {};
+  Object.entries(ISLAND_BASE_COST).forEach(([res, amt]) => {
+    cost[res] = Math.round(amt * mult);
+  });
+  return cost;
+}
 
-  const { c: cc, r: cr } = SECOND_ISLAND_CENTER;
+function buyNextIsland() {
+  const n = state.islandsBought + 1;
+  if (n >= ISLAND_CENTERS.length) return;
+  if (state.level < ISLAND_LEVEL_REQ[n]) return;
+  const cost = islandCost(n);
+  if (!canAfford(cost)) return;
+  spend(cost);
+
+  const { c: cc, r: cr } = ISLAND_CENTERS[n];
   for (let dc = -1; dc <= 1; dc++) {
     for (let dr = -1; dr <= 1; dr++) {
       state.tiles[coordKey(cc + dc, cr + dr)] = { type: "land", building: null };
     }
   }
   state.tiles[coordKey(cc, cr)].building = { id: "sawmill", lastCollect: Date.now() };
-  state.secondIslandBought = true;
+  state.islandsBought = n;
 
   gainXP(50);
   renderWorld();
@@ -508,31 +530,39 @@ function renderIslandSheet() {
   const list = $("islandList");
   list.innerHTML = "";
 
-  if (state.secondIslandBought) {
+  const owned = document.createElement("div");
+  owned.className = "buildOptDesc";
+  owned.style.padding = "0 2px 10px";
+  owned.textContent = `Островів у тебе: ${1 + state.islandsBought}. Кожен наступний — далі від центру й дорожчий.`;
+  list.appendChild(owned);
+
+  const n = state.islandsBought + 1;
+  if (n >= ISLAND_CENTERS.length) {
     const done = document.createElement("div");
     done.className = "buildOptDesc";
     done.style.padding = "6px 2px";
-    done.textContent = "Другий острів уже твій — розвивай його так само, як перший.";
+    done.textContent = "Ти вже викупив усі доступні острови!";
     list.appendChild(done);
     return;
   }
 
-  const levelOk = state.level >= SECOND_ISLAND_LEVEL;
-  const afford = levelOk && canAfford(SECOND_ISLAND_COST);
+  const cost = islandCost(n);
+  const levelOk = state.level >= ISLAND_LEVEL_REQ[n];
+  const afford = levelOk && canAfford(cost);
   const opt = document.createElement("div");
   opt.className = "buildOption" + (afford ? "" : " disabled");
   const statusLine = levelOk
-    ? costChips(SECOND_ISLAND_COST, afford)
-    : `<span class="costChip short">Доступно з LV.${SECOND_ISLAND_LEVEL}</span>`;
+    ? costChips(cost, afford)
+    : `<span class="costChip short">Доступно з LV.${ISLAND_LEVEL_REQ[n]}</span>`;
   opt.innerHTML = `
     <div class="buildOptIcon">🏝️</div>
     <div class="buildOptInfo">
-      <div class="buildOptName">Купити новий острів</div>
-      <div class="buildOptDesc">Ще одна ділянка землі неподалік, з безкоштовною лісопилкою на старт</div>
+      <div class="buildOptName">Острів №${n + 1}</div>
+      <div class="buildOptDesc">Ще одна ділянка землі, далі в морі, з безкоштовною лісопилкою на старт</div>
       <div class="buildOptCost">${statusLine}</div>
     </div>
   `;
-  if (levelOk) opt.addEventListener("click", buySecondIsland);
+  if (levelOk) opt.addEventListener("click", buyNextIsland);
   list.appendChild(opt);
 }
 
@@ -1030,7 +1060,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 13;
+const CURRENT_BUILD = 14;
 
 async function checkForUpdate() {
   try {
