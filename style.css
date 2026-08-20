@@ -109,13 +109,15 @@ input, textarea{
 .world{
   position:absolute; left:50%; top:46%;
   width:0; height:0;
+  will-change:transform;
 }
 .tile{
   position:absolute;
   width:var(--tw); height:var(--th);
-  transform:translate(-50%,-50%);
+  left:0; top:0;
   cursor:pointer;
-  transition:left .32s ease, top .32s ease;
+  transition:transform .32s ease;
+  will-change:transform;
 }
 .tileDiamond{
   position:absolute; inset:0;

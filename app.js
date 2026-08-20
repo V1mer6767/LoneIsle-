@@ -704,6 +704,10 @@ function hasSameZoneNeighbor(c, r, zoneKey) {
   return false;
 }
 
+function setWorldPos(el, x, y) {
+  el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+}
+
 function buildTileEl(c, r, cssType, tile) {
   const { x, y } = isoPos(c, r);
   const isDock = tile && tile.building && tile.building.id === "dock";
@@ -711,8 +715,7 @@ function buildTileEl(c, r, cssType, tile) {
   const zoneClass = zoneKey !== "empty" && zoneKey !== "dock" ? ` zone-${zoneKey}` : "";
   const el = document.createElement("div");
   el.className = `tile ${cssType}${isDock ? " dockTile" : ""}${zoneClass}`;
-  el.style.left = x + "px";
-  el.style.top = y + "px";
+  setWorldPos(el, x, y);
   el.dataset.c = c;
   el.dataset.r = r;
 
@@ -1014,8 +1017,7 @@ function rotateView() {
   for (const [key, el] of tileEls.entries()) {
     const [c, r] = key.split(",").map(Number);
     const { x, y } = isoPos(c, r);
-    el.style.left = x + "px";
-    el.style.top = y + "px";
+    setWorldPos(el, x, y);
   }
   for (const [key, el] of badgeEls.entries()) {
     if (key.startsWith("boat:")) continue;
@@ -1166,7 +1168,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 20;
+const CURRENT_BUILD = 21;
 
 async function checkForUpdate() {
   try {
