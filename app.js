@@ -16,6 +16,14 @@ const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "dock"];
 
 const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", gold: "🪙" };
 
+const WORKER_DEFS = {
+  wood: { res: "wood", name: "Лісоруб", icon: "🧝", unlockLevel: 2, cost: { wood: 40 } },
+  food: { res: "food", name: "Фермер", icon: "🧑‍🌾", unlockLevel: 3, cost: { wood: 30, food: 20 } },
+  stone: { res: "stone", name: "Шахтар", icon: "👷", unlockLevel: 4, cost: { wood: 40, stone: 20 } },
+  gold: { res: "gold", name: "Скарбник", icon: "🧞", unlockLevel: 6, cost: { wood: 50, gold: 30 } },
+};
+const WORKER_CYCLE_MS = 3500;
+
 let state = null;
 const tileEls = new Map();
 const badgeEls = new Map();
@@ -43,6 +51,7 @@ function defaultState() {
     tiles,
     hasDock: false,
     boats: [],
+    workers: {},
     lastSaveAt: now,
   };
 }
@@ -54,6 +63,7 @@ function loadGame() {
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.tiles) return { state: defaultState(), gapMs: 0 };
     if (!Array.isArray(parsed.boats)) parsed.boats = [];
+    if (!parsed.workers || typeof parsed.workers !== "object") parsed.workers = {};
     const gapMs = Date.now() - (parsed.lastSaveAt || Date.now());
     return { state: parsed, gapMs };
   } catch {
@@ -285,6 +295,158 @@ function renderBoatSheet() {
   list.appendChild(opt);
 }
 
+/* ---------- worker characters ---------- */
+const workerEls = new Map();
+
+function findBuildingsOfType(res) {
+  const list = [];
+  for (const [key, tile] of Object.entries(state.tiles)) {
+    if (!tile.building) continue;
+    const def = BUILDING_DEFS[tile.building.id];
+    if (!def.produce || def.produce.res !== res) continue;
+    const [c, r] = key.split(",").map(Number);
+    const { x, y } = isoPos(c, r);
+    list.push({ x, y });
+  }
+  if (BUILDING_DEFS.boat.produce.res === res) {
+    for (const boat of state.boats) {
+      const { x, y } = isoPos(boat.gc, boat.gr);
+      list.push({ x, y });
+    }
+  }
+  return list;
+}
+
+function workerCollectAllOfType(res) {
+  let total = 0;
+  for (const tile of Object.values(state.tiles)) {
+    if (!tile.building) continue;
+    const def = BUILDING_DEFS[tile.building.id];
+    if (!def.produce || def.produce.res !== res) continue;
+    const ready = readyAmount(tile.building);
+    if (ready > 0) {
+      addResource(res, ready);
+      tile.building.lastCollect = Date.now();
+      total += ready;
+    }
+  }
+  if (BUILDING_DEFS.boat.produce.res === res) {
+    for (const boat of state.boats) {
+      const ready = readyAmount({ id: "boat", lastCollect: boat.lastCollect });
+      if (ready > 0) {
+        addResource(res, ready);
+        boat.lastCollect = Date.now();
+        total += ready;
+      }
+    }
+  }
+  return total;
+}
+
+function hireWorker(res) {
+  const def = WORKER_DEFS[res];
+  if (state.workers[res]) return;
+  if (state.level < def.unlockLevel) return;
+  if (!canAfford(def.cost)) return;
+  spend(def.cost);
+  state.workers[res] = { lastCycle: Date.now(), x: 0, y: 0 };
+  gainXP(15);
+  renderWorkers();
+  updateHeader();
+  saveGame();
+  renderWorkerSheet();
+  moveWorkerTo(res);
+}
+
+function moveWorkerTo(res) {
+  const targets = findBuildingsOfType(res);
+  const t = targets.length ? targets[Math.floor(Math.random() * targets.length)] : { x: 0, y: 0 };
+  state.workers[res].x = t.x;
+  state.workers[res].y = t.y;
+  const el = workerEls.get(res);
+  if (el) {
+    el.style.left = t.x + "px";
+    el.style.top = t.y + "px";
+  }
+}
+
+function tickWorkers() {
+  if (!state.workers) return;
+  let changed = false;
+  for (const res of Object.keys(state.workers)) {
+    const w = state.workers[res];
+    if (!w) continue;
+    if (Date.now() - w.lastCycle < WORKER_CYCLE_MS) continue;
+    w.lastCycle = Date.now();
+    const total = workerCollectAllOfType(res);
+    if (total > 0) {
+      changed = true;
+      spawnFloatTextAt(w.x || 0, w.y || 0, `+${total} ${RES_ICON[res]}`);
+    }
+    moveWorkerTo(res);
+  }
+  if (changed) {
+    updateHeader();
+    updateBadges();
+    saveGame();
+  }
+}
+
+function renderWorkers() {
+  const world = $("world");
+  workerEls.clear();
+  for (const res of Object.keys(state.workers)) {
+    const w = state.workers[res];
+    if (!w) continue;
+    const def = WORKER_DEFS[res];
+    const el = document.createElement("div");
+    el.className = "worker";
+    el.style.left = (w.x || 0) + "px";
+    el.style.top = (w.y || 0) + "px";
+    el.textContent = def.icon;
+    world.appendChild(el);
+    workerEls.set(res, el);
+  }
+}
+
+function openWorkerSheet() {
+  renderWorkerSheet();
+  $("workerSheetBackdrop").style.display = "block";
+  $("workerSheet").style.display = "block";
+}
+function closeWorkerSheet() {
+  $("workerSheetBackdrop").style.display = "none";
+  $("workerSheet").style.display = "none";
+}
+
+function renderWorkerSheet() {
+  const list = $("workerList");
+  list.innerHTML = "";
+  for (const res of Object.keys(WORKER_DEFS)) {
+    const def = WORKER_DEFS[res];
+    const hired = !!state.workers[res];
+    const levelOk = state.level >= def.unlockLevel;
+    const afford = levelOk && canAfford(def.cost);
+    const opt = document.createElement("div");
+    opt.className = "buildOption" + (hired || !afford ? " disabled" : "");
+    const statusLine = hired
+      ? `<span class="costChip" style="color:var(--grass-dark);">✓ найнято</span>`
+      : levelOk
+      ? costChips(def.cost, afford)
+      : `<span class="costChip short">Доступно з LV.${def.unlockLevel}</span>`;
+    opt.innerHTML = `
+      <div class="buildOptIcon">${def.icon}</div>
+      <div class="buildOptInfo">
+        <div class="buildOptName">${def.name}</div>
+        <div class="buildOptDesc">Автоматично збирає ${RES_ICON[res]} ${res === "wood" ? "дерево" : res === "stone" ? "камінь" : res === "food" ? "їжу" : "золото"}</div>
+        <div class="buildOptCost">${statusLine}</div>
+      </div>
+    `;
+    if (!hired) opt.addEventListener("click", () => hireWorker(res));
+    list.appendChild(opt);
+  }
+}
+
 /* ---------- iso positioning ---------- */
 function rotateCoord(c, r) {
   switch (rotation % 4) {
@@ -347,6 +509,7 @@ function renderWorld() {
   }
 
   renderBoats();
+  renderWorkers();
 
   applyPan();
   updateBadges();
@@ -796,6 +959,9 @@ async function registerSW() {
 }
 
 function wire() {
+  $("btnWorkers").addEventListener("click", openWorkerSheet);
+  $("btnCloseWorkerSheet").addEventListener("click", closeWorkerSheet);
+  $("workerSheetBackdrop").addEventListener("click", closeWorkerSheet);
   $("btnFishing").addEventListener("click", openBoatSheet);
   $("btnCloseBoatSheet").addEventListener("click", closeBoatSheet);
   $("boatSheetBackdrop").addEventListener("click", closeBoatSheet);
@@ -827,6 +993,7 @@ function init() {
   saveGame();
 
   setInterval(updateBadges, 1000);
+  setInterval(tickWorkers, 1000);
   setInterval(saveGame, 8000);
 }
 

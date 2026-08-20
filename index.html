@@ -30,6 +30,7 @@
     <div class="resPill" data-res="gold"><span class="resIcon">🪙</span><span id="resGold">0</span></div>
   </div>
 
+  <button id="btnWorkers" class="iconbtn" title="Персонажі">👥</button>
   <button id="btnFishing" class="iconbtn" title="Рибальство">🎣</button>
   <button id="btnRotate" class="iconbtn" title="Повернути острів">🔄</button>
   <button id="btnRefresh" class="iconbtn" title="Оновити">↻</button>
@@ -54,6 +55,16 @@
   <button id="btnCloseSheet" class="btn ghost full">Закрити</button>
 </div>
 <div id="sheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+
+<!-- Workers sheet -->
+<div id="workerSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="workerSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">Персонажі</div>
+  <div class="buildOptDesc" style="padding:0 2px 12px;">Найми по одному персонажу на кожен ресурс — вони самі бігатимуть по острову й збиратимуть, без твоїх тапів.</div>
+  <div class="buildList" id="workerList"></div>
+  <button id="btnCloseWorkerSheet" class="btn ghost full">Закрити</button>
+</div>
 
 <!-- Fishing / boats sheet -->
 <div id="boatSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>

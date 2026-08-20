@@ -295,4 +295,19 @@ body{
   50%{ transform:translate(-50%,-50%) rotate(6deg) translateY(-6px); }
 }
 
+.worker{
+  position:absolute;
+  font-size:24px;
+  transform:translate(-50%,-95%);
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.3));
+  pointer-events:none;
+  z-index:4;
+  transition:left 1.1s cubic-bezier(.4,0,.2,1), top 1.1s cubic-bezier(.4,0,.2,1);
+  animation:workerHop .45s ease-in-out infinite;
+}
+@keyframes workerHop{
+  0%,100%{ transform:translate(-50%,-95%) translateY(0) scale(1,1); }
+  50%{ transform:translate(-50%,-95%) translateY(-5px) scale(1.05,.95); }
+}
+
 @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
