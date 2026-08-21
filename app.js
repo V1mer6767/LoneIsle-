@@ -6,15 +6,18 @@ const $ = (id) => document.getElementById(id);
 
 const BUILDING_DEFS = {
   sawmill: { id: "sawmill", name: "Лісопилка", icon: "🌲", unlockLevel: 1, baseCost: { wood: 6 }, produce: { res: "wood", interval: 4000, cap: 60 }, desc: "Виробляє дерево з часом" },
-  farm: { id: "farm", name: "Ферма", icon: "🌾", unlockLevel: 2, baseCost: { wood: 10 }, produce: { res: "food", interval: 5000, cap: 60 }, desc: "Виробляє їжу з часом" },
+  farm: { id: "farm", name: "Ферма", icon: "🌾", unlockLevel: 2, baseCost: { wood: 10 }, produce: { res: "food", interval: 5000, cap: 60 }, desc: "Вирощує культури з часом" },
   mine: { id: "mine", name: "Копальня", icon: "⛏️", unlockLevel: 3, baseCost: { wood: 14, food: 7 }, produce: { res: "stone", interval: 6000, cap: 50 }, desc: "Виробляє камінь з часом" },
   house: { id: "house", name: "Хатина", icon: "🏠", unlockLevel: 4, baseCost: { wood: 18, stone: 10 }, produce: { res: "gold", interval: 10000, cap: 40 }, desc: "Приносить золото з часом" },
   dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 22, stone: 14, food: 7 }, produce: null, special: "dock", desc: "Відкриває будівництво на воді" },
   boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 18, gold: 10 }, produce: { res: "fish", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
+  cow: { id: "cow", name: "Корівник", icon: "🐄", unlockLevel: 5, baseCost: { wood: 20, food: 10 }, produce: { res: "animals", interval: 7000, cap: 40 }, desc: "Розводить корів" },
+  pig: { id: "pig", name: "Свинарник", icon: "🐖", unlockLevel: 5, baseCost: { wood: 18, food: 8 }, produce: { res: "animals", interval: 6000, cap: 45 }, desc: "Розводить свиней" },
+  bull: { id: "bull", name: "Загін для биків", icon: "🐂", unlockLevel: 6, baseCost: { wood: 26, food: 14 }, produce: { res: "animals", interval: 8500, cap: 35 }, desc: "Розводить биків" },
 };
-const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "dock"];
+const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "cow", "pig", "dock", "bull"];
 
-const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", fish: "🐟", gold: "💰" };
+const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", fish: "🐟", animals: "🐄", gold: "💰" };
 
 const WORKER_DEFS = {
   wood: { res: "wood", name: "Лісоруб", icon: "🧝", unlockLevel: 2, cost: { wood: 40 } },
@@ -61,7 +64,7 @@ function defaultState() {
   return {
     level: 1,
     xp: 0,
-    resources: { wood: 20, stone: 0, food: 0, fish: 0, gold: 5 },
+    resources: { wood: 20, stone: 0, food: 0, fish: 0, animals: 0, gold: 5 },
     tiles,
     hasDock: false,
     boats: [],
@@ -88,6 +91,7 @@ function loadGame() {
     }
     if (!parsed.workers || typeof parsed.workers !== "object") parsed.workers = {};
     if (typeof parsed.resources.fish !== "number") parsed.resources.fish = 0;
+    if (typeof parsed.resources.animals !== "number") parsed.resources.animals = 0;
     if (typeof parsed.islandsBought !== "number") {
       parsed.islandsBought = parsed.secondIslandBought ? 1 : 0;
     }
@@ -532,7 +536,7 @@ function renderWorkerSheet() {
       <div class="buildOptIcon">${def.icon}</div>
       <div class="buildOptInfo">
         <div class="buildOptName">${def.name}</div>
-        <div class="buildOptDesc">${res === "fish" ? "Приганяє човен до причалу й забирає улов" : `Автоматично збирає ${RES_ICON[res]} ${res === "wood" ? "дерево" : res === "stone" ? "камінь" : res === "food" ? "їжу" : "золото"}`}</div>
+        <div class="buildOptDesc">${res === "fish" ? "Приганяє човен до причалу й забирає улов" : `Автоматично збирає ${RES_ICON[res]} ${res === "wood" ? "дерево" : res === "stone" ? "камінь" : res === "food" ? "культури" : res === "animals" ? "тварин" : "золото"}`}</div>
         <div class="buildOptCost">${statusLine}</div>
       </div>
     `;
@@ -790,6 +794,7 @@ function updateHeader() {
   $("resStone").textContent = formatNum(state.resources.stone);
   $("resFood").textContent = formatNum(state.resources.food);
   $("resFish").textContent = formatNum(state.resources.fish);
+  $("resAnimals").textContent = formatNum(state.resources.animals);
   $("resGold").textContent = formatNum(state.resources.gold);
 }
 
@@ -1187,11 +1192,11 @@ function renderMarketSheet() {
 }
 
 /* ---------- shop ---------- */
-const SHOP_RES = ["wood", "stone", "food", "fish"];
-const SHOP_SELL_BATCH = { wood: 15, stone: 12, food: 15, fish: 12 };
-const SHOP_SELL_GOLD = { wood: 5, stone: 5, food: 5, fish: 6 };
-const SHOP_BUY_BATCH = { wood: 10, stone: 8, food: 10, fish: 8 };
-const SHOP_BUY_GOLD = { wood: 6, stone: 7, food: 6, fish: 7 };
+const SHOP_RES = ["wood", "stone", "food", "fish", "animals"];
+const SHOP_SELL_BATCH = { wood: 15, stone: 12, food: 15, fish: 12, animals: 10 };
+const SHOP_SELL_GOLD = { wood: 5, stone: 5, food: 5, fish: 6, animals: 8 };
+const SHOP_BUY_BATCH = { wood: 10, stone: 8, food: 10, fish: 8, animals: 6 };
+const SHOP_BUY_GOLD = { wood: 6, stone: 7, food: 6, fish: 7, animals: 9 };
 
 function sellResource(res) {
   const batch = SHOP_SELL_BATCH[res];
@@ -1235,7 +1240,7 @@ function renderShopSheet() {
     row.innerHTML = `
       <div class="buildOptIcon">${RES_ICON[res]}</div>
       <div class="buildOptInfo">
-        <div class="buildOptName">${res === "wood" ? "Дерево" : res === "stone" ? "Камінь" : res === "fish" ? "Риба" : "Їжа"}</div>
+        <div class="buildOptName">${res === "wood" ? "Дерево" : res === "stone" ? "Камінь" : res === "fish" ? "Риба" : res === "animals" ? "Тварини" : "Культури"}</div>
         <div class="buildOptDesc">У тебе: ${formatNum(have)}</div>
       </div>
       <div class="shopBtns">
@@ -1431,7 +1436,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 31;
+const CURRENT_BUILD = 32;
 
 async function checkForUpdate() {
   try {
