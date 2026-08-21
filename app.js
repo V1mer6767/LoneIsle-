@@ -11,18 +11,19 @@ const BUILDING_DEFS = {
   house: { id: "house", name: "Хатина", icon: "🏠", unlockLevel: 4, baseCost: { wood: 18, stone: 10 }, produce: { res: "gold", interval: 10000, cap: 40 }, desc: "Приносить золото з часом" },
   dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 22, stone: 14, food: 7 }, produce: null, special: "dock", desc: "Відкриває будівництво на воді" },
   boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 18, gold: 10 }, produce: { res: "fish", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
-  cow: { id: "cow", name: "Корівник", icon: "🐄", unlockLevel: 5, baseCost: { wood: 20, food: 10 }, produce: { res: "animals", interval: 7000, cap: 40 }, desc: "Розводить корів" },
-  pig: { id: "pig", name: "Свинарник", icon: "🐖", unlockLevel: 5, baseCost: { wood: 18, food: 8 }, produce: { res: "animals", interval: 6000, cap: 45 }, desc: "Розводить свиней" },
-  bull: { id: "bull", name: "Загін для биків", icon: "🐂", unlockLevel: 6, baseCost: { wood: 26, food: 14 }, produce: { res: "animals", interval: 8500, cap: 35 }, desc: "Розводить биків" },
+  cow: { id: "cow", name: "Корівник", icon: "🐄", unlockLevel: 5, baseCost: { wood: 20, food: 10 }, produce: { res: "meat", interval: 7000, cap: 40 }, desc: "Дає м'ясо, зникає після кількох забоїв" },
+  pig: { id: "pig", name: "Свинарник", icon: "🐖", unlockLevel: 5, baseCost: { wood: 18, food: 8 }, produce: { res: "meat", interval: 6000, cap: 45 }, desc: "Дає м'ясо, зникає після кількох забоїв" },
+  bull: { id: "bull", name: "Загін для биків", icon: "🐂", unlockLevel: 6, baseCost: { wood: 26, food: 14 }, produce: { res: "meat", interval: 8500, cap: 35 }, desc: "Дає м'ясо, зникає після кількох забоїв" },
 };
 const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "cow", "pig", "dock", "bull"];
 
-const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", fish: "🐟", animals: "🐄", gold: "💰" };
+const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", fish: "🐟", meat: "🥩", gold: "💰" };
 
 const WORKER_DEFS = {
   wood: { res: "wood", name: "Лісоруб", icon: "🧝", unlockLevel: 2, cost: { wood: 40 } },
   food: { res: "food", name: "Фермер", icon: "🧑‍🌾", unlockLevel: 3, cost: { wood: 30, food: 20 } },
   stone: { res: "stone", name: "Шахтар", icon: "👷", unlockLevel: 4, cost: { wood: 40, stone: 20 } },
+  meat: { res: "meat", name: "М'ясник", icon: "🔪", unlockLevel: 5, cost: { wood: 35, food: 15 } },
   fish: { res: "fish", name: "Рибалка", icon: "🎣", unlockLevel: 6, cost: { wood: 35, gold: 20 } },
   gold: { res: "gold", name: "Скарбник", icon: "🧞", unlockLevel: 6, cost: { wood: 50, gold: 30 } },
 };
@@ -64,7 +65,7 @@ function defaultState() {
   return {
     level: 1,
     xp: 0,
-    resources: { wood: 20, stone: 0, food: 0, fish: 0, animals: 0, gold: 5 },
+    resources: { wood: 20, stone: 0, food: 0, fish: 0, meat: 0, gold: 5 },
     tiles,
     hasDock: false,
     boats: [],
@@ -91,7 +92,7 @@ function loadGame() {
     }
     if (!parsed.workers || typeof parsed.workers !== "object") parsed.workers = {};
     if (typeof parsed.resources.fish !== "number") parsed.resources.fish = 0;
-    if (typeof parsed.resources.animals !== "number") parsed.resources.animals = 0;
+    if (typeof parsed.resources.meat !== "number") parsed.resources.meat = (parsed.resources.animals || 0);
     if (typeof parsed.islandsBought !== "number") {
       parsed.islandsBought = parsed.secondIslandBought ? 1 : 0;
     }
@@ -183,6 +184,25 @@ function unlockCost(kind) {
 }
 
 /* ---------- production ---------- */
+const ANIMAL_BUILDING_IDS = ["cow", "pig", "bull"];
+const HARVESTS_PER_ANIMAL = 3;
+
+function isAnimalBuilding(id) {
+  return ANIMAL_BUILDING_IDS.includes(id);
+}
+
+function depleteAnimalIfNeeded(c, r) {
+  const tile = state.tiles[coordKey(c, r)];
+  if (!tile || !tile.building || !isAnimalBuilding(tile.building.id)) return false;
+  if (typeof tile.building.harvestsLeft !== "number") tile.building.harvestsLeft = HARVESTS_PER_ANIMAL;
+  tile.building.harvestsLeft -= 1;
+  if (tile.building.harvestsLeft <= 0) {
+    tile.building = null;
+    return true;
+  }
+  return false;
+}
+
 function readyAmount(building) {
   const def = BUILDING_DEFS[building.id];
   if (!def.produce) return 0;
@@ -417,7 +437,8 @@ function findBuildingsOfType(res) {
 
 function workerCollectAllOfType(res) {
   let total = 0;
-  for (const tile of Object.values(state.tiles)) {
+  let anyDepleted = false;
+  for (const [key, tile] of Object.entries(state.tiles)) {
     if (!tile.building) continue;
     const def = BUILDING_DEFS[tile.building.id];
     if (!def.produce || def.produce.res !== res) continue;
@@ -426,6 +447,8 @@ function workerCollectAllOfType(res) {
       addResource(res, ready);
       tile.building.lastCollect = Date.now();
       total += ready;
+      const [c, r] = key.split(",").map(Number);
+      if (depleteAnimalIfNeeded(c, r)) anyDepleted = true;
     }
   }
   if (BUILDING_DEFS.boat.produce.res === res) {
@@ -438,7 +461,7 @@ function workerCollectAllOfType(res) {
       }
     }
   }
-  return total;
+  return { total, depleted: anyDepleted };
 }
 
 function hireWorker(res) {
@@ -471,23 +494,25 @@ function moveWorkerTo(res) {
 function tickWorkers() {
   if (!state.workers) return;
   let changed = false;
+  let needsRender = false;
   for (const res of Object.keys(state.workers)) {
     const w = state.workers[res];
     if (!w) continue;
     if (Date.now() - w.lastCycle < WORKER_CYCLE_MS) continue;
     w.lastCycle = Date.now();
-    const total = workerCollectAllOfType(res);
+    const { total, depleted } = workerCollectAllOfType(res);
     if (total > 0) {
       changed = true;
       spawnFloatTextAt(w.x || 0, w.y || 0, `+${total} ${RES_ICON[res]}`);
     }
+    if (depleted) needsRender = true;
     moveWorkerTo(res);
   }
   if (changed) {
     updateHeader();
-    updateBadges();
     saveGame();
   }
+  if (needsRender) renderWorld();
 }
 
 function renderWorkers() {
@@ -536,7 +561,7 @@ function renderWorkerSheet() {
       <div class="buildOptIcon">${def.icon}</div>
       <div class="buildOptInfo">
         <div class="buildOptName">${def.name}</div>
-        <div class="buildOptDesc">${res === "fish" ? "Приганяє човен до причалу й забирає улов" : `Автоматично збирає ${RES_ICON[res]} ${res === "wood" ? "дерево" : res === "stone" ? "камінь" : res === "food" ? "культури" : res === "animals" ? "тварин" : "золото"}`}</div>
+        <div class="buildOptDesc">${res === "fish" ? "Приганяє човен до причалу й забирає улов" : `Автоматично збирає ${RES_ICON[res]} ${res === "wood" ? "дерево" : res === "stone" ? "камінь" : res === "food" ? "культури" : res === "meat" ? "м'ясо" : "золото"}`}</div>
         <div class="buildOptCost">${statusLine}</div>
       </div>
     `;
@@ -724,6 +749,7 @@ function tileZoneKey(tile) {
   if (id === "sawmill") return "forest";
   if (id === "farm") return "farm";
   if (id === "dock") return "dock";
+  if (id === "cow" || id === "pig" || id === "bull") return "animals";
   return "buildings";
 }
 
@@ -794,7 +820,7 @@ function updateHeader() {
   $("resStone").textContent = formatNum(state.resources.stone);
   $("resFood").textContent = formatNum(state.resources.food);
   $("resFish").textContent = formatNum(state.resources.fish);
-  $("resAnimals").textContent = formatNum(state.resources.animals);
+  $("resMeat").textContent = formatNum(state.resources.meat);
   $("resGold").textContent = formatNum(state.resources.gold);
 }
 
@@ -850,9 +876,10 @@ function collectTile(c, r) {
   tile.building.lastCollect = Date.now();
   gainXP(2);
   spawnFloatText(c, r, `+${ready} ${RES_ICON[def.produce.res]}`);
-  updateBadges();
+  const depleted = depleteAnimalIfNeeded(c, r);
   updateHeader();
   saveGame();
+  if (depleted) renderWorld();
 }
 
 function collectAll() {
@@ -869,6 +896,8 @@ function collectAll() {
       totals[def.produce.res] = (totals[def.produce.res] || 0) + ready;
       any = true;
       gainXP(2);
+      const [c, r] = key.split(",").map(Number);
+      depleteAnimalIfNeeded(c, r);
     }
   }
   for (const boat of state.boats) {
@@ -1216,7 +1245,7 @@ function runPoliceRaid() {
   state.resources.gold = Math.max(0, (state.resources.gold || 0) - goldLost);
 
   const resLost = {};
-  for (const res of ["wood", "stone", "food", "fish", "animals"]) {
+  for (const res of ["wood", "stone", "food", "fish", "meat"]) {
     const have = state.resources[res] || 0;
     const take = Math.round(have * (0.15 + Math.random() * 0.1));
     if (take > 0) {
@@ -1253,11 +1282,11 @@ function showPoliceOverlay(treasuresLost, goldLost, resLost, tilesLost) {
 }
 
 /* ---------- shop ---------- */
-const SHOP_RES = ["wood", "stone", "food", "fish", "animals"];
-const SHOP_SELL_BATCH = { wood: 15, stone: 12, food: 15, fish: 12, animals: 10 };
-const SHOP_SELL_GOLD = { wood: 5, stone: 5, food: 5, fish: 6, animals: 8 };
-const SHOP_BUY_BATCH = { wood: 10, stone: 8, food: 10, fish: 8, animals: 6 };
-const SHOP_BUY_GOLD = { wood: 6, stone: 7, food: 6, fish: 7, animals: 9 };
+const SHOP_RES = ["wood", "stone", "food", "fish", "meat"];
+const SHOP_SELL_BATCH = { wood: 15, stone: 12, food: 15, fish: 12, meat: 10 };
+const SHOP_SELL_GOLD = { wood: 5, stone: 5, food: 5, fish: 6, meat: 8 };
+const SHOP_BUY_BATCH = { wood: 10, stone: 8, food: 10, fish: 8, meat: 6 };
+const SHOP_BUY_GOLD = { wood: 6, stone: 7, food: 6, fish: 7, meat: 9 };
 
 function sellResource(res) {
   const batch = SHOP_SELL_BATCH[res];
@@ -1301,7 +1330,7 @@ function renderShopSheet() {
     row.innerHTML = `
       <div class="buildOptIcon">${RES_ICON[res]}</div>
       <div class="buildOptInfo">
-        <div class="buildOptName">${res === "wood" ? "Дерево" : res === "stone" ? "Камінь" : res === "fish" ? "Риба" : res === "animals" ? "Тварини" : "Культури"}</div>
+        <div class="buildOptName">${res === "wood" ? "Дерево" : res === "stone" ? "Камінь" : res === "fish" ? "Риба" : res === "meat" ? "М'ясо" : "Культури"}</div>
         <div class="buildOptDesc">У тебе: ${formatNum(have)}</div>
       </div>
       <div class="shopBtns">
@@ -1497,7 +1526,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 34;
+const CURRENT_BUILD = 35;
 
 async function checkForUpdate() {
   try {
@@ -1587,6 +1616,7 @@ function init() {
     const totals = collectAll();
     const parts = Object.entries(totals).map(([res, amt]) => `+${amt} ${RES_ICON[res]}`);
     if (parts.length) {
+      renderWorld();
       $("welcomeText").textContent = "Поки тебе не було, острів попрацював: " + parts.join("  ");
       $("welcomeOverlay").style.display = "flex";
     }

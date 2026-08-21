@@ -155,6 +155,12 @@ input, textarea{
     linear-gradient(160deg, #e8bc70 0%, #d4a24c 40%, #a97c2e 100%);
 }
 .tile.zone-farm .tileEdge{background:#8f6a26;}
+.tile.zone-animals .tileDiamond{
+  background:
+    radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.32) 0%, transparent 45%),
+    linear-gradient(160deg, #fbe9b8 0%, var(--sand) 45%, var(--sand-dark) 100%);
+}
+.tile.zone-animals .tileEdge{background:#b28d47;}
 .tile.water .tileDiamond{
   background:
     radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.22) 0%, transparent 40%),
