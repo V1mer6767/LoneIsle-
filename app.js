@@ -9,7 +9,7 @@ const BUILDING_DEFS = {
   farm: { id: "farm", name: "Ферма", icon: "🌾", unlockLevel: 2, baseCost: { wood: 10 }, produce: { res: "food", interval: 5000, cap: 60 }, desc: "Вирощує культури з часом" },
   mine: { id: "mine", name: "Копальня", icon: "⛏️", unlockLevel: 3, baseCost: { wood: 14, food: 7 }, produce: { res: "stone", interval: 6000, cap: 50 }, desc: "Виробляє камінь з часом" },
   house: { id: "house", name: "Хатина", icon: "🏠", unlockLevel: 4, baseCost: { wood: 18, stone: 10 }, produce: { res: "gold", interval: 10000, cap: 40 }, desc: "Приносить золото з часом" },
-  dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 22, stone: 14, food: 7 }, produce: null, special: "dock", desc: "Відкриває будівництво на воді" },
+  dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 22, stone: 14, food: 7 }, produce: { res: "gold", interval: 9000, cap: 30 }, special: "dock", desc: "Відкриває забудову на воді й приносить золото від портових зборів" },
   boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 18, gold: 10 }, produce: { res: "fish", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
   cow: { id: "cow", name: "Корівник", icon: "🐄", unlockLevel: 5, baseCost: { wood: 20, food: 10 }, produce: { res: "meat", interval: 7000, cap: 40 }, desc: "Дає м'ясо, зникає після кількох забоїв" },
   pig: { id: "pig", name: "Свинарник", icon: "🐖", unlockLevel: 5, baseCost: { wood: 18, food: 8 }, produce: { res: "meat", interval: 6000, cap: 45 }, desc: "Дає м'ясо, зникає після кількох забоїв" },
@@ -1540,7 +1540,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 38;
+const CURRENT_BUILD = 39;
 
 async function checkForUpdate() {
   try {
