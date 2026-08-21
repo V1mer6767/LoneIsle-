@@ -20,6 +20,7 @@ const WORKER_DEFS = {
   wood: { res: "wood", name: "Лісоруб", icon: "🧝", unlockLevel: 2, cost: { wood: 40 } },
   food: { res: "food", name: "Фермер", icon: "🧑‍🌾", unlockLevel: 3, cost: { wood: 30, food: 20 } },
   stone: { res: "stone", name: "Шахтар", icon: "👷", unlockLevel: 4, cost: { wood: 40, stone: 20 } },
+  fish: { res: "fish", name: "Рибалка", icon: "🎣", unlockLevel: 6, cost: { wood: 35, gold: 20 } },
   gold: { res: "gold", name: "Скарбник", icon: "🧞", unlockLevel: 6, cost: { wood: 50, gold: 30 } },
 };
 const WORKER_CYCLE_MS = 3500;
@@ -529,7 +530,7 @@ function renderWorkerSheet() {
       <div class="buildOptIcon">${def.icon}</div>
       <div class="buildOptInfo">
         <div class="buildOptName">${def.name}</div>
-        <div class="buildOptDesc">Автоматично збирає ${RES_ICON[res]} ${res === "wood" ? "дерево" : res === "stone" ? "камінь" : res === "food" ? "їжу" : "золото"}</div>
+        <div class="buildOptDesc">${res === "fish" ? "Приганяє човен до причалу й забирає улов" : `Автоматично збирає ${RES_ICON[res]} ${res === "wood" ? "дерево" : res === "stone" ? "камінь" : res === "food" ? "їжу" : "золото"}`}</div>
         <div class="buildOptCost">${statusLine}</div>
       </div>
     `;
@@ -1305,7 +1306,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 28;
+const CURRENT_BUILD = 29;
 
 async function checkForUpdate() {
   try {
