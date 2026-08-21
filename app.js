@@ -481,11 +481,16 @@ function hireWorker(res) {
 
 function moveWorkerTo(res) {
   const targets = findBuildingsOfType(res);
-  const t = targets.length ? targets[Math.floor(Math.random() * targets.length)] : { x: 0, y: 0 };
+  const el = workerEls.get(res);
+  if (!targets.length) {
+    if (el) el.style.display = "none";
+    return;
+  }
+  const t = targets[Math.floor(Math.random() * targets.length)];
   state.workers[res].x = t.x;
   state.workers[res].y = t.y;
-  const el = workerEls.get(res);
   if (el) {
+    el.style.display = "";
     el.style.left = t.x + "px";
     el.style.top = t.y + "px";
   }
@@ -522,10 +527,12 @@ function renderWorkers() {
     const w = state.workers[res];
     if (!w) continue;
     const def = WORKER_DEFS[res];
+    const hasTargets = findBuildingsOfType(res).length > 0;
     const el = document.createElement("div");
     el.className = "worker";
     el.style.left = (w.x || 0) + "px";
     el.style.top = (w.y || 0) + "px";
+    el.style.display = hasTargets ? "" : "none";
     el.textContent = def.icon;
     world.appendChild(el);
     workerEls.set(res, el);
@@ -1526,7 +1533,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 35;
+const CURRENT_BUILD = 36;
 
 async function checkForUpdate() {
   try {
