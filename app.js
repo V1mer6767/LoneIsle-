@@ -811,6 +811,8 @@ function onTileTap(c, r) {
   const ready = readyAmount(tile.building);
   if (ready > 0) {
     collectTile(c, r);
+  } else {
+    openManageTileSheet(c, r);
   }
 }
 
@@ -976,6 +978,60 @@ function openBuildSheet(c, r) {
     hint.textContent = "Ще недоступно: " + locked.map((id) => `${BUILDING_DEFS[id].icon} ${BUILDING_DEFS[id].name} (LV.${BUILDING_DEFS[id].unlockLevel})`).join(", ");
     list.appendChild(hint);
   }
+
+  openSheet();
+}
+
+function openManageTileSheet(c, r) {
+  const tile = state.tiles[coordKey(c, r)];
+  if (!tile || !tile.building) return;
+  sheetContext = { kind: "manage", c, r };
+  const currentDef = BUILDING_DEFS[tile.building.id];
+  $("sheetTitle").textContent = `${currentDef.icon} ${currentDef.name}`;
+  const list = $("buildList");
+  list.innerHTML = "";
+
+  const info = document.createElement("div");
+  info.className = "buildOptDesc";
+  info.style.padding = "0 2px 10px";
+  info.textContent = "Тут уже стоїть " + currentDef.name.toLowerCase() + ". Можеш безкоштовно змінити призначення ділянки:";
+  list.appendChild(info);
+
+  const options = [
+    { id: null, name: "Забудова (прибрати будівлю)", icon: "🏠", desc: "Порожня ділянка, готова під будь-що" },
+    ...BUILDING_ORDER.map((id) => BUILDING_DEFS[id]),
+  ];
+
+  options.forEach((opt) => {
+    if (opt.id === tile.building.id) return;
+    const locked = opt.id && state.level < opt.unlockLevel;
+    const row = document.createElement("div");
+    row.className = "buildOption" + (locked ? " disabled" : "");
+    row.innerHTML = `
+      <div class="buildOptIcon">${opt.icon}</div>
+      <div class="buildOptInfo">
+        <div class="buildOptName">${opt.name}</div>
+        <div class="buildOptDesc">${locked ? `Доступно з LV.${opt.unlockLevel}` : (opt.desc || "")}</div>
+      </div>
+    `;
+    if (!locked) {
+      row.addEventListener("click", () => {
+        const t = state.tiles[coordKey(c, r)];
+        if (!t) return;
+        if (opt.id) {
+          t.building = { id: opt.id, lastCollect: Date.now() };
+          if (opt.special === "dock") state.hasDock = true;
+        } else {
+          t.building = null;
+        }
+        renderWorld();
+        updateHeader();
+        saveGame();
+        closeSheet();
+      });
+    }
+    list.appendChild(row);
+  });
 
   openSheet();
 }
@@ -1156,7 +1212,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 24;
+const CURRENT_BUILD = 25;
 
 async function checkForUpdate() {
   try {
