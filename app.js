@@ -10,11 +10,11 @@ const BUILDING_DEFS = {
   mine: { id: "mine", name: "Копальня", icon: "⛏️", unlockLevel: 3, baseCost: { wood: 14, food: 7 }, produce: { res: "stone", interval: 6000, cap: 50 }, desc: "Виробляє камінь з часом" },
   house: { id: "house", name: "Хатина", icon: "🏠", unlockLevel: 4, baseCost: { wood: 18, stone: 10 }, produce: { res: "gold", interval: 10000, cap: 40 }, desc: "Приносить золото з часом" },
   dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 22, stone: 14, food: 7 }, produce: null, special: "dock", desc: "Відкриває будівництво на воді" },
-  boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 18, gold: 10 }, produce: { res: "food", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
+  boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 18, gold: 10 }, produce: { res: "fish", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
 };
 const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "dock"];
 
-const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", gold: "💰" };
+const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", fish: "🐟", gold: "💰" };
 
 const WORKER_DEFS = {
   wood: { res: "wood", name: "Лісоруб", icon: "🧝", unlockLevel: 2, cost: { wood: 40 } },
@@ -60,7 +60,7 @@ function defaultState() {
   return {
     level: 1,
     xp: 0,
-    resources: { wood: 20, stone: 0, food: 0, gold: 5 },
+    resources: { wood: 20, stone: 0, food: 0, fish: 0, gold: 5 },
     tiles,
     hasDock: false,
     boats: [],
@@ -85,6 +85,7 @@ function loadGame() {
       parsed.boats = parsed.boats.slice(-MAX_BOATS);
     }
     if (!parsed.workers || typeof parsed.workers !== "object") parsed.workers = {};
+    if (typeof parsed.resources.fish !== "number") parsed.resources.fish = 0;
     if (typeof parsed.islandsBought !== "number") {
       parsed.islandsBought = parsed.secondIslandBought ? 1 : 0;
     }
@@ -771,6 +772,7 @@ function updateHeader() {
   $("resWood").textContent = formatNum(state.resources.wood);
   $("resStone").textContent = formatNum(state.resources.stone);
   $("resFood").textContent = formatNum(state.resources.food);
+  $("resFish").textContent = formatNum(state.resources.fish);
   $("resGold").textContent = formatNum(state.resources.gold);
 }
 
@@ -1065,11 +1067,11 @@ function openManageTileSheet(c, r) {
 }
 
 /* ---------- shop ---------- */
-const SHOP_RES = ["wood", "stone", "food"];
-const SHOP_SELL_BATCH = { wood: 15, stone: 12, food: 15 };
-const SHOP_SELL_GOLD = { wood: 5, stone: 5, food: 5 };
-const SHOP_BUY_BATCH = { wood: 10, stone: 8, food: 10 };
-const SHOP_BUY_GOLD = { wood: 6, stone: 7, food: 6 };
+const SHOP_RES = ["wood", "stone", "food", "fish"];
+const SHOP_SELL_BATCH = { wood: 15, stone: 12, food: 15, fish: 12 };
+const SHOP_SELL_GOLD = { wood: 5, stone: 5, food: 5, fish: 6 };
+const SHOP_BUY_BATCH = { wood: 10, stone: 8, food: 10, fish: 8 };
+const SHOP_BUY_GOLD = { wood: 6, stone: 7, food: 6, fish: 7 };
 
 function sellResource(res) {
   const batch = SHOP_SELL_BATCH[res];
@@ -1113,7 +1115,7 @@ function renderShopSheet() {
     row.innerHTML = `
       <div class="buildOptIcon">${RES_ICON[res]}</div>
       <div class="buildOptInfo">
-        <div class="buildOptName">${res === "wood" ? "Дерево" : res === "stone" ? "Камінь" : "Їжа"}</div>
+        <div class="buildOptName">${res === "wood" ? "Дерево" : res === "stone" ? "Камінь" : res === "fish" ? "Риба" : "Їжа"}</div>
         <div class="buildOptDesc">У тебе: ${formatNum(have)}</div>
       </div>
       <div class="shopBtns">
@@ -1303,7 +1305,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 27;
+const CURRENT_BUILD = 28;
 
 async function checkForUpdate() {
   try {
@@ -1350,7 +1352,7 @@ function wire() {
   $("menuNewIsland").addEventListener("click", () => { closeMoreSheet(); openIslandSheet(); });
   $("menuWorkers").addEventListener("click", () => { closeMoreSheet(); openWorkerSheet(); });
   $("menuFishing").addEventListener("click", () => { closeMoreSheet(); openBoatSheet(); });
-  $("menuShop").addEventListener("click", () => { closeMoreSheet(); openShopSheet(); });
+  $("btnShop").addEventListener("click", openShopSheet);
   $("btnCloseShopSheet").addEventListener("click", closeShopSheet);
   $("shopSheetBackdrop").addEventListener("click", closeShopSheet);
   $("menuReset").addEventListener("click", () => {
