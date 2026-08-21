@@ -1092,11 +1092,11 @@ function openManageTileSheet(c, r) {
 
 /* ---------- treasures & black market ---------- */
 const TREASURE_DEFS = {
-  gem: { name: "Коштовний камінь", icon: "💎", baseValue: 40 },
-  vase: { name: "Стародавня ваза", icon: "🏺", baseValue: 30 },
-  crown: { name: "Корона", icon: "👑", baseValue: 70 },
-  sword: { name: "Стародавній меч", icon: "🗡️", baseValue: 50 },
-  necklace: { name: "Намисто", icon: "📿", baseValue: 35 },
+  gem: { name: "Коштовний камінь", icon: "💎", baseValue: 220 },
+  vase: { name: "Стародавня ваза", icon: "🏺", baseValue: 160 },
+  crown: { name: "Корона", icon: "👑", baseValue: 380 },
+  sword: { name: "Стародавній меч", icon: "🗡️", baseValue: 260 },
+  necklace: { name: "Намисто", icon: "📿", baseValue: 190 },
 };
 const TREASURE_CHANCE = 0.18;
 const BLACK_MARKET_BUYERS = ["Загадковий колекціонер", "Портовий торговець", "Заможний купець", "Таємничий незнайомець", "Мандрівний скупник", "Старий капітан"];
@@ -1436,7 +1436,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 32;
+const CURRENT_BUILD = 33;
 
 async function checkForUpdate() {
   try {
