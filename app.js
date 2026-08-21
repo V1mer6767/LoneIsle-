@@ -14,8 +14,11 @@ const BUILDING_DEFS = {
   cow: { id: "cow", name: "Корівник", icon: "🐄", unlockLevel: 5, baseCost: { wood: 20, food: 10 }, produce: { res: "meat", interval: 7000, cap: 40 }, desc: "Дає м'ясо, зникає після кількох забоїв" },
   pig: { id: "pig", name: "Свинарник", icon: "🐖", unlockLevel: 5, baseCost: { wood: 18, food: 8 }, produce: { res: "meat", interval: 6000, cap: 45 }, desc: "Дає м'ясо, зникає після кількох забоїв" },
   bull: { id: "bull", name: "Загін для биків", icon: "🐂", unlockLevel: 6, baseCost: { wood: 26, food: 14 }, produce: { res: "meat", interval: 8500, cap: 35 }, desc: "Дає м'ясо, зникає після кількох забоїв" },
+  townhouse: { id: "townhouse", name: "Будинок", icon: "🏘️", unlockLevel: 50, baseCost: { wood: 40, stone: 20 }, produce: { res: "gold", interval: 8000, cap: 60 }, desc: "Приносить дохід від оренди" },
+  restaurant: { id: "restaurant", name: "Ресторан", icon: "🍽️", unlockLevel: 50, baseCost: { wood: 60, food: 30, stone: 20 }, produce: { res: "gold", interval: 9000, cap: 100 }, desc: "Приносить дохід від гостей Outer Banks" },
+  townshop: { id: "townshop", name: "Крамниця", icon: "🏪", unlockLevel: 50, baseCost: { wood: 50, stone: 30 }, produce: { res: "gold", interval: 7000, cap: 80 }, desc: "Приносить дохід від туристів" },
 };
-const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "cow", "pig", "dock", "bull"];
+const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "cow", "pig", "dock", "bull", "townhouse", "townshop", "restaurant"];
 
 const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", fish: "🐟", meat: "🥩", gold: "💰" };
 
@@ -40,6 +43,9 @@ const ISLAND_CENTERS = [
 const ISLAND_LEVEL_REQ = [0, 7, 9, 11, 13, 15];
 const ISLAND_BASE_COST = { wood: 200, stone: 80, gold: 60 };
 const ISLAND_COST_MULT = 1.7;
+
+const OUTER_BANKS_LEVEL = 50;
+const OUTER_BANKS_CENTER = { c: 26, r: 16 };
 
 let state = null;
 const tileEls = new Map();
@@ -72,6 +78,7 @@ function defaultState() {
     workers: {},
     islandsBought: 0,
     treasures: {},
+    outerBanksUnlocked: false,
     lastSaveAt: now,
   };
 }
@@ -97,6 +104,7 @@ function loadGame() {
       parsed.islandsBought = parsed.secondIslandBought ? 1 : 0;
     }
     if (!parsed.treasures || typeof parsed.treasures !== "object") parsed.treasures = {};
+    if (typeof parsed.outerBanksUnlocked !== "boolean") parsed.outerBanksUnlocked = false;
     Object.values(parsed.tiles).forEach((t) => { if (t.treasureFound) delete t.treasureFound; });
     delete parsed.secondIslandBought;
     const gapMs = Date.now() - (parsed.lastSaveAt || Date.now());
@@ -125,9 +133,28 @@ function gainXP(amount) {
   }
   if (leveled) {
     state.level = newLevel;
-    showLevelUp(newLevel);
+    if (newLevel >= OUTER_BANKS_LEVEL && !state.outerBanksUnlocked) {
+      unlockOuterBanks();
+    } else {
+      showLevelUp(newLevel);
+    }
   }
   updateHeader();
+}
+
+function unlockOuterBanks() {
+  state.outerBanksUnlocked = true;
+  const { c: cc, r: cr } = OUTER_BANKS_CENTER;
+  for (let dc = -1; dc <= 1; dc++) {
+    for (let dr = -1; dr <= 1; dr++) {
+      state.tiles[coordKey(cc + dc, cr + dr)] = { type: "land", building: null };
+    }
+  }
+  state.tiles[coordKey(cc, cr)].building = { id: "townhouse", lastCollect: Date.now() };
+  $("btnLighthouse").style.display = "";
+  renderWorld();
+  saveGame();
+  $("obTicketOverlay").style.display = "flex";
 }
 
 function showLevelUp(level) {
@@ -1540,7 +1567,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 39;
+const CURRENT_BUILD = 40;
 
 async function checkForUpdate() {
   try {
@@ -1621,6 +1648,11 @@ function wire() {
     }
   });
   $("btnPoliceClose").addEventListener("click", () => { $("policeOverlay").style.display = "none"; });
+  $("btnLighthouse").addEventListener("click", () => flyTo(OUTER_BANKS_CENTER.c, OUTER_BANKS_CENTER.r));
+  $("btnObTicketClose").addEventListener("click", () => {
+    $("obTicketOverlay").style.display = "none";
+    flyTo(OUTER_BANKS_CENTER.c, OUTER_BANKS_CENTER.r);
+  });
   $("btnWelcomeClose").addEventListener("click", () => { $("welcomeOverlay").style.display = "none"; });
   wirePanning();
 }
@@ -1633,6 +1665,7 @@ function init() {
   expireBoats();
   renderWorld();
   updateHeader();
+  if (state.outerBanksUnlocked) $("btnLighthouse").style.display = "";
 
   if (gapMs > 30000) {
     const totals = collectAll();

@@ -25,6 +25,9 @@
     </div>
 
     <div class="headerActions">
+      <button id="btnLighthouse" class="iconbtn" title="Outer Banks" style="display:none;">
+        <div class="lighthouseIcon"><span class="lhTop"></span><span class="lhTower"></span><span class="lhBase"></span></div>
+      </button>
       <button id="btnShop" class="iconbtn" title="Магазин">🏪</button>
       <button id="btnMore" class="iconbtn" title="Ще дії">⋯</button>
       <button id="btnRotate" class="iconbtn" title="Повернути острів">🔄</button>
@@ -159,6 +162,21 @@
 
 <!-- Treasure found overlay -->
 <!-- Police raid overlay -->
+<!-- Outer Banks ticket overlay -->
+<div id="obTicketOverlay" class="levelUpOverlay" style="display:none;">
+  <div class="obSign">
+    <div class="obBadge">
+      <div class="lighthouseIcon big"><span class="lhTop"></span><span class="lhTower"></span><span class="lhBase"></span></div>
+    </div>
+    <div class="obWelcome">Ласкаво просимо до</div>
+    <div class="obTitle">OUTER BANKS</div>
+    <div class="obSubtitle">РАЙ НА ЗЕМЛІ</div>
+    <div class="obTicketLine">🎟️ Вітаємо, ви отримали квиток!</div>
+    <div class="welcomeText">Новий далекий острів чекає — там будуються будинки, ресторани й крамниці. Шукай маяк 🔴 у шапці.</div>
+    <button id="btnObTicketClose" class="btn primary full">Вирушаємо!</button>
+  </div>
+</div>
+
 <div id="policeOverlay" class="levelUpOverlay" style="display:none;">
   <div class="levelUpCard policeCard">
     <div class="treasureIcon">🚨</div>
@@ -186,7 +204,7 @@
   </div>
 </div>
 
-<div class="buildStamp" id="buildStamp">build v39</div>
+<div class="buildStamp" id="buildStamp">build v40</div>
 
 <script src="app.js"></script>
 </body>

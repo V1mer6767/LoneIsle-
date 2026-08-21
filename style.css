@@ -344,6 +344,55 @@ input, textarea{
   animation:popIn .35s ease-out;
 }
 .policeCard{border:2px solid rgba(255,68,68,.5);}
+
+/* ---------- lighthouse icon (used in header button + ticket badge) ---------- */
+.lighthouseIcon{position:relative; width:16px; height:22px;}
+.lighthouseIcon .lhTop{
+  position:absolute; top:0; left:50%; transform:translateX(-50%);
+  width:0; height:0;
+  border-left:5px solid transparent; border-right:5px solid transparent;
+  border-bottom:6px solid #e0574f;
+}
+.lighthouseIcon .lhTower{
+  position:absolute; top:6px; left:50%; transform:translateX(-50%);
+  width:7px; height:12px;
+  background:repeating-linear-gradient(180deg, #e0574f 0 3px, #fdf6f0 3px 6px);
+  border-radius:1px;
+}
+.lighthouseIcon .lhBase{
+  position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+  width:11px; height:3px; background:#8a3a35; border-radius:1px;
+}
+.lighthouseIcon.big{width:48px; height:66px;}
+.lighthouseIcon.big .lhTop{border-left-width:15px; border-right-width:15px; border-bottom-width:18px;}
+.lighthouseIcon.big .lhTower{top:16px; width:20px; height:36px; background:repeating-linear-gradient(180deg, #e0574f 0 8px, #fdf6f0 8px 16px);}
+.lighthouseIcon.big .lhBase{width:32px; height:8px;}
+
+/* ---------- Outer Banks ticket sign ---------- */
+.obSign{
+  background:linear-gradient(160deg, #2f6b52, #1f4d3a);
+  border:5px solid #eef0e8;
+  border-radius:18px;
+  padding:26px 22px 22px;
+  text-align:center;
+  max-width:320px; width:100%;
+  box-shadow:0 20px 50px rgba(0,0,0,.4);
+  animation:popIn .4s ease-out;
+  color:#eef0e8;
+}
+.obBadge{
+  width:76px; height:76px; margin:0 auto 14px;
+  border-radius:50%;
+  background:radial-gradient(circle at 50% 40%, #f4b23f, #e0574f 75%);
+  display:flex; align-items:flex-end; justify-content:center;
+  padding-bottom:6px;
+  box-shadow:0 6px 14px rgba(0,0,0,.35), inset 0 2px 6px rgba(255,255,255,.3);
+}
+.obWelcome{font-family:var(--display); font-style:italic; font-size:15px; opacity:.85;}
+.obTitle{font-family:var(--display); font-weight:800; font-size:34px; letter-spacing:1px; margin:4px 0 2px; color:#fdf6f0;}
+.obSubtitle{font-family:var(--display); font-weight:700; font-size:12px; letter-spacing:3px; opacity:.75; margin-bottom:14px;}
+.obTicketLine{font-family:var(--display); font-weight:700; font-size:15px; color:#f4b23f; margin-bottom:10px;}
+.obSign .welcomeText{color:#eef0e8; opacity:.9;}
 @keyframes popIn{
   0%{transform:scale(.85); opacity:0;}
   100%{transform:scale(1); opacity:1;}
