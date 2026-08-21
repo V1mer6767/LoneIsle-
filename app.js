@@ -97,6 +97,7 @@ function loadGame() {
       parsed.islandsBought = parsed.secondIslandBought ? 1 : 0;
     }
     if (!parsed.treasures || typeof parsed.treasures !== "object") parsed.treasures = {};
+    Object.values(parsed.tiles).forEach((t) => { if (t.treasureFound) delete t.treasureFound; });
     delete parsed.secondIslandBought;
     const gapMs = Date.now() - (parsed.lastSaveAt || Date.now());
     return { state: parsed, gapMs };
@@ -1140,13 +1141,19 @@ const BLACK_MARKET_BUYERS = ["Загадковий колекціонер", "П�
 const treasureMarkerEls = new Map();
 let blackMarketOffers = {};
 
+let lastTreasureTileKey = null;
+
 function maybeFindTreasure(c, r) {
   if (Math.random() >= TREASURE_CHANCE) return;
   const types = Object.keys(TREASURE_DEFS);
   const type = types[Math.floor(Math.random() * types.length)];
   state.treasures[type] = (state.treasures[type] || 0) + 1;
-  const tile = state.tiles[coordKey(c, r)];
-  if (tile) tile.treasureFound = true;
+  const key = coordKey(c, r);
+  const tile = state.tiles[key];
+  if (tile) {
+    tile.treasureFound = true;
+    lastTreasureTileKey = key;
+  }
   showTreasureFound(type);
 }
 
@@ -1533,7 +1540,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 37;
+const CURRENT_BUILD = 38;
 
 async function checkForUpdate() {
   try {
@@ -1604,7 +1611,15 @@ function wire() {
   $("btnCloseSheet").addEventListener("click", closeSheet);
   $("sheetBackdrop").addEventListener("click", closeSheet);
   $("btnLevelUpClose").addEventListener("click", () => { $("levelUpOverlay").style.display = "none"; });
-  $("btnTreasureClose").addEventListener("click", () => { $("treasureOverlay").style.display = "none"; });
+  $("btnTreasureClose").addEventListener("click", () => {
+    $("treasureOverlay").style.display = "none";
+    if (lastTreasureTileKey && state.tiles[lastTreasureTileKey]) {
+      delete state.tiles[lastTreasureTileKey].treasureFound;
+      lastTreasureTileKey = null;
+      renderWorld();
+      saveGame();
+    }
+  });
   $("btnPoliceClose").addEventListener("click", () => { $("policeOverlay").style.display = "none"; });
   $("btnWelcomeClose").addEventListener("click", () => { $("welcomeOverlay").style.display = "none"; });
   wirePanning();
