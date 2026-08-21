@@ -67,6 +67,7 @@ function defaultState() {
     boats: [],
     workers: {},
     islandsBought: 0,
+    treasures: {},
     lastSaveAt: now,
   };
 }
@@ -90,6 +91,7 @@ function loadGame() {
     if (typeof parsed.islandsBought !== "number") {
       parsed.islandsBought = parsed.secondIslandBought ? 1 : 0;
     }
+    if (!parsed.treasures || typeof parsed.treasures !== "object") parsed.treasures = {};
     delete parsed.secondIslandBought;
     const gapMs = Date.now() - (parsed.lastSaveAt || Date.now());
     return { state: parsed, gapMs };
@@ -691,6 +693,20 @@ function renderWorld() {
     dockShedEls.set(key, shed);
   }
 
+  treasureMarkerEls.clear();
+  for (const [key, tile] of Object.entries(state.tiles)) {
+    if (!tile.treasureFound) continue;
+    const [c, r] = key.split(",").map(Number);
+    const { x, y } = isoPos(c, r);
+    const marker = document.createElement("div");
+    marker.className = "treasureMarker";
+    marker.textContent = "✕";
+    marker.style.left = x + TILE_W * 0.28 + "px";
+    marker.style.top = y - TILE_H * 0.22 + "px";
+    world.appendChild(marker);
+    treasureMarkerEls.set(key, marker);
+  }
+
   renderBoats();
   renderWorkers();
 
@@ -926,6 +942,7 @@ function openUnlockSheet(c, r, kind) {
       state.tiles[coordKey(c, r)] = tile;
       gainXP(zone.buildingId ? 20 : 8);
       repositionBoatsIfTooClose();
+      if (zoneKey === "plain") maybeFindTreasure(c, r);
       renderWorld();
       updateHeader();
       saveGame();
@@ -953,6 +970,7 @@ function openUnlockSheet(c, r, kind) {
         state.tiles[coordKey(c, r)] = { type: isWater ? "water" : "land", building: null };
         gainXP(8);
         repositionBoatsIfTooClose();
+        maybeFindTreasure(c, r);
         renderWorld();
         updateHeader();
         saveGame();
@@ -1067,6 +1085,107 @@ function openManageTileSheet(c, r) {
   openSheet();
 }
 
+/* ---------- treasures & black market ---------- */
+const TREASURE_DEFS = {
+  gem: { name: "Коштовний камінь", icon: "💎", baseValue: 40 },
+  vase: { name: "Стародавня ваза", icon: "🏺", baseValue: 30 },
+  crown: { name: "Корона", icon: "👑", baseValue: 70 },
+  sword: { name: "Стародавній меч", icon: "🗡️", baseValue: 50 },
+  necklace: { name: "Намисто", icon: "📿", baseValue: 35 },
+};
+const TREASURE_CHANCE = 0.18;
+const BLACK_MARKET_BUYERS = ["Загадковий колекціонер", "Портовий торговець", "Заможний купець", "Таємничий незнайомець", "Мандрівний скупник", "Старий капітан"];
+
+const treasureMarkerEls = new Map();
+let blackMarketOffers = {};
+
+function maybeFindTreasure(c, r) {
+  if (Math.random() >= TREASURE_CHANCE) return;
+  const types = Object.keys(TREASURE_DEFS);
+  const type = types[Math.floor(Math.random() * types.length)];
+  state.treasures[type] = (state.treasures[type] || 0) + 1;
+  const tile = state.tiles[coordKey(c, r)];
+  if (tile) tile.treasureFound = true;
+  showTreasureFound(type);
+}
+
+function showTreasureFound(type) {
+  const def = TREASURE_DEFS[type];
+  $("treasureIcon").textContent = def.icon;
+  $("treasureName").textContent = def.name;
+  $("treasureOverlay").style.display = "flex";
+}
+
+function rollBuyerOffer(baseValue) {
+  return Math.round(baseValue * (0.7 + Math.random() * 0.6));
+}
+
+function openMarketSheet() {
+  blackMarketOffers = {};
+  for (const type of Object.keys(TREASURE_DEFS)) {
+    if ((state.treasures[type] || 0) <= 0) continue;
+    blackMarketOffers[type] = {
+      buyer: BLACK_MARKET_BUYERS[Math.floor(Math.random() * BLACK_MARKET_BUYERS.length)],
+      price: rollBuyerOffer(TREASURE_DEFS[type].baseValue),
+    };
+  }
+  renderMarketSheet();
+  $("marketSheetBackdrop").style.display = "block";
+  $("marketSheet").style.display = "block";
+}
+function closeMarketSheet() {
+  $("marketSheetBackdrop").style.display = "none";
+  $("marketSheet").style.display = "none";
+}
+
+function sellTreasure(type) {
+  if ((state.treasures[type] || 0) <= 0) return;
+  const offer = blackMarketOffers[type];
+  if (!offer) return;
+  state.treasures[type]--;
+  addResource("gold", offer.price);
+  gainXP(10);
+  updateHeader();
+  saveGame();
+  renderMarketSheet();
+}
+
+function renderMarketSheet() {
+  const list = $("marketList");
+  list.innerHTML = "";
+  const held = Object.keys(TREASURE_DEFS).filter((t) => (state.treasures[t] || 0) > 0);
+
+  if (!held.length) {
+    const empty = document.createElement("div");
+    empty.className = "buildOptDesc";
+    empty.style.padding = "6px 2px";
+    empty.textContent = "Скарбів поки нема. Купуй порожні ділянки (Забудова) — час від часу там щось знаходиться.";
+    list.appendChild(empty);
+    return;
+  }
+
+  held.forEach((type) => {
+    const def = TREASURE_DEFS[type];
+    const offer = blackMarketOffers[type];
+    const count = state.treasures[type];
+    const row = document.createElement("div");
+    row.className = "buildOption";
+    row.innerHTML = `
+      <div class="buildOptIcon">${def.icon}</div>
+      <div class="buildOptInfo">
+        <div class="buildOptName">${def.name} × ${count}</div>
+        <div class="buildOptDesc">${offer.buyer} пропонує</div>
+        <div class="buildOptCost"><span class="costChip">💰 ${offer.price}</span></div>
+      </div>
+      <div class="shopBtns">
+        <button class="btn small sell">Продати</button>
+      </div>
+    `;
+    row.querySelector(".sell").addEventListener("click", () => sellTreasure(type));
+    list.appendChild(row);
+  });
+}
+
 /* ---------- shop ---------- */
 const SHOP_RES = ["wood", "stone", "food", "fish"];
 const SHOP_SELL_BATCH = { wood: 15, stone: 12, food: 15, fish: 12 };
@@ -1169,6 +1288,12 @@ function rotateView() {
     const { x, y } = isoPos(c, r);
     el.style.left = x - TILE_W * 0.14 + "px";
     el.style.top = y - TILE_H * 0.16 + "px";
+  }
+  for (const [key, el] of treasureMarkerEls.entries()) {
+    const [c, r] = key.split(",").map(Number);
+    const { x, y } = isoPos(c, r);
+    el.style.left = x + TILE_W * 0.28 + "px";
+    el.style.top = y - TILE_H * 0.22 + "px";
   }
   for (const boat of state.boats) {
     const { x, y } = isoPos(boat.gc, boat.gr);
@@ -1306,7 +1431,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 30;
+const CURRENT_BUILD = 31;
 
 async function checkForUpdate() {
   try {
@@ -1353,6 +1478,9 @@ function wire() {
   $("menuNewIsland").addEventListener("click", () => { closeMoreSheet(); openIslandSheet(); });
   $("menuWorkers").addEventListener("click", () => { closeMoreSheet(); openWorkerSheet(); });
   $("menuFishing").addEventListener("click", () => { closeMoreSheet(); openBoatSheet(); });
+  $("menuBlackMarket").addEventListener("click", () => { closeMoreSheet(); openMarketSheet(); });
+  $("btnCloseMarketSheet").addEventListener("click", closeMarketSheet);
+  $("marketSheetBackdrop").addEventListener("click", closeMarketSheet);
   $("btnShop").addEventListener("click", openShopSheet);
   $("btnCloseShopSheet").addEventListener("click", closeShopSheet);
   $("shopSheetBackdrop").addEventListener("click", closeShopSheet);
@@ -1374,6 +1502,7 @@ function wire() {
   $("btnCloseSheet").addEventListener("click", closeSheet);
   $("sheetBackdrop").addEventListener("click", closeSheet);
   $("btnLevelUpClose").addEventListener("click", () => { $("levelUpOverlay").style.display = "none"; });
+  $("btnTreasureClose").addEventListener("click", () => { $("treasureOverlay").style.display = "none"; });
   $("btnWelcomeClose").addEventListener("click", () => { $("welcomeOverlay").style.display = "none"; });
   wirePanning();
 }

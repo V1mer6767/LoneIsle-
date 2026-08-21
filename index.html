@@ -82,6 +82,10 @@
       <div class="buildOptIcon">🎣</div>
       <div class="buildOptInfo"><div class="buildOptName">Рибальство</div></div>
     </div>
+    <div class="buildOption" id="menuBlackMarket">
+      <div class="buildOptIcon">🏴‍☠️</div>
+      <div class="buildOptInfo"><div class="buildOptName">Чорний ринок</div></div>
+    </div>
     <div class="buildOption" id="menuReset">
       <div class="buildOptIcon">🗑️</div>
       <div class="buildOptInfo"><div class="buildOptName">Скинути прогрес</div></div>
@@ -142,6 +146,27 @@
 </div>
 
 <!-- Welcome back overlay -->
+<!-- Black market sheet -->
+<div id="marketSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="marketSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">🏴‍☠️ Чорний ринок</div>
+  <div class="buildOptDesc" style="padding:0 2px 12px;">Скупники пропонують ціну за твої скарби. Ціни змінюються щоразу, як відкриваєш ринок.</div>
+  <div class="buildList" id="marketList"></div>
+  <button id="btnCloseMarketSheet" class="btn ghost full">Закрити</button>
+</div>
+
+<!-- Treasure found overlay -->
+<div id="treasureOverlay" class="levelUpOverlay" style="display:none;">
+  <div class="levelUpCard">
+    <div class="levelUpTitle">Вітаємо!</div>
+    <div class="treasureIcon" id="treasureIcon">💎</div>
+    <div class="levelUpLv" id="treasureLv" style="font-size:24px;">Ти знайшов скарб!</div>
+    <div class="welcomeText" id="treasureName"></div>
+    <button id="btnTreasureClose" class="btn primary full">Клас!</button>
+  </div>
+</div>
+
 <div id="welcomeOverlay" class="levelUpOverlay" style="display:none;">
   <div class="levelUpCard">
     <div class="levelUpTitle">З поверненням! 👋</div>
@@ -150,7 +175,7 @@
   </div>
 </div>
 
-<div class="buildStamp" id="buildStamp">build v30</div>
+<div class="buildStamp" id="buildStamp">build v31</div>
 
 <script src="app.js"></script>
 </body>

@@ -193,6 +193,17 @@ input, textarea{
   font-size:calc(var(--th)*0.42); pointer-events:none; filter:drop-shadow(0 2px 2px rgba(0,0,0,.25));
 }
 
+.treasureMarker{
+  position:absolute;
+  font-size:16px; font-weight:900; color:#ff3b30;
+  text-shadow:0 1px 0 #fff, 0 2px 3px rgba(0,0,0,.35);
+  pointer-events:none;
+  z-index:5;
+  transition:left .32s ease, top .32s ease;
+}
+
+.treasureIcon{font-size:52px; margin:6px 0;}
+
 .buildingIcon{
   position:absolute; left:50%; top:38%; transform:translate(-50%,-60%);
   font-size:calc(var(--th)*0.62); pointer-events:none;
