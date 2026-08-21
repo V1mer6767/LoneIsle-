@@ -1191,6 +1191,67 @@ function renderMarketSheet() {
   });
 }
 
+/* ---------- police raids ---------- */
+const POLICE_CHECK_MS = 90000;
+const POLICE_RAID_CHANCE = 0.22;
+
+function checkPolice() {
+  const totalTreasures = Object.values(state.treasures || {}).reduce((a, b) => a + b, 0);
+  if (totalTreasures <= 0) return;
+  if (Math.random() >= POLICE_RAID_CHANCE) return;
+  runPoliceRaid();
+}
+
+function runPoliceRaid() {
+  let treasuresLost = 0;
+  for (const type of Object.keys(state.treasures)) {
+    const have = state.treasures[type] || 0;
+    if (have <= 0) continue;
+    const take = Math.min(have, Math.max(1, Math.floor(have * 0.5)));
+    state.treasures[type] -= take;
+    treasuresLost += take;
+  }
+
+  const goldLost = Math.round((state.resources.gold || 0) * (0.25 + Math.random() * 0.15));
+  state.resources.gold = Math.max(0, (state.resources.gold || 0) - goldLost);
+
+  const resLost = {};
+  for (const res of ["wood", "stone", "food", "fish", "animals"]) {
+    const have = state.resources[res] || 0;
+    const take = Math.round(have * (0.15 + Math.random() * 0.1));
+    if (take > 0) {
+      state.resources[res] -= take;
+      resLost[res] = take;
+    }
+  }
+
+  const landKeys = Object.keys(state.tiles).filter((k) => state.tiles[k].type === "land" && k !== "0,0");
+  const tilesToTake = Math.min(landKeys.length, 1 + Math.floor(Math.random() * 3));
+  for (let i = 0; i < tilesToTake; i++) {
+    const idx = Math.floor(Math.random() * landKeys.length);
+    const key = landKeys.splice(idx, 1)[0];
+    delete state.tiles[key];
+  }
+
+  renderWorld();
+  updateHeader();
+  saveGame();
+  showPoliceOverlay(treasuresLost, goldLost, resLost, tilesToTake);
+}
+
+function showPoliceOverlay(treasuresLost, goldLost, resLost, tilesLost) {
+  const parts = [];
+  parts.push("Поліція знайшла в тебе контрабандні скарби на чорному ринку!");
+  const taken = [];
+  if (treasuresLost > 0) taken.push(`${treasuresLost} скарб(ів)`);
+  if (goldLost > 0) taken.push(`💰 ${goldLost}`);
+  Object.entries(resLost).forEach(([res, amt]) => taken.push(`${RES_ICON[res]} ${amt}`));
+  if (tilesLost > 0) taken.push(`${tilesLost} ділянк(и) землі`);
+  if (taken.length) parts.push("Конфісковано: " + taken.join(", "));
+  $("policeText").textContent = parts.join(" ");
+  $("policeOverlay").style.display = "flex";
+}
+
 /* ---------- shop ---------- */
 const SHOP_RES = ["wood", "stone", "food", "fish", "animals"];
 const SHOP_SELL_BATCH = { wood: 15, stone: 12, food: 15, fish: 12, animals: 10 };
@@ -1436,7 +1497,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 33;
+const CURRENT_BUILD = 34;
 
 async function checkForUpdate() {
   try {
@@ -1508,6 +1569,7 @@ function wire() {
   $("sheetBackdrop").addEventListener("click", closeSheet);
   $("btnLevelUpClose").addEventListener("click", () => { $("levelUpOverlay").style.display = "none"; });
   $("btnTreasureClose").addEventListener("click", () => { $("treasureOverlay").style.display = "none"; });
+  $("btnPoliceClose").addEventListener("click", () => { $("policeOverlay").style.display = "none"; });
   $("btnWelcomeClose").addEventListener("click", () => { $("welcomeOverlay").style.display = "none"; });
   wirePanning();
 }
@@ -1532,6 +1594,7 @@ function init() {
   saveGame();
 
   setInterval(tickWorkers, 1200);
+  setInterval(checkPolice, POLICE_CHECK_MS);
   setInterval(saveGame, 8000);
   setInterval(expireBoats, 15000);
 
