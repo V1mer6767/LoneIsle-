@@ -14,7 +14,7 @@ const BUILDING_DEFS = {
 };
 const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "dock"];
 
-const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", gold: "🪙" };
+const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", gold: "💰" };
 
 const WORKER_DEFS = {
   wood: { res: "wood", name: "Лісоруб", icon: "🧝", unlockLevel: 2, cost: { wood: 40 } },
@@ -937,7 +937,7 @@ function openUnlockSheet(c, r, kind) {
       const goldOpt = document.createElement("div");
       goldOpt.className = "buildOption" + (goldAfford ? "" : " disabled");
       goldOpt.innerHTML = `
-        <div class="buildOptIcon">🪙</div>
+        <div class="buildOptIcon">💰</div>
         <div class="buildOptInfo">
           <div class="buildOptName">Забудова — оплатити золотом</div>
           <div class="buildOptDesc">Той самий варіант, але замість дерева/каменю/їжі — просто золото</div>
@@ -1117,8 +1117,8 @@ function renderShopSheet() {
         <div class="buildOptDesc">У тебе: ${formatNum(have)}</div>
       </div>
       <div class="shopBtns">
-        <button class="btn small sell" ${canSell ? "" : "disabled"}>Продати ${SHOP_SELL_BATCH[res]} → +${SHOP_SELL_GOLD[res]} 🪙</button>
-        <button class="btn small buy" ${canBuy ? "" : "disabled"}>Купити ${SHOP_BUY_BATCH[res]} → -${SHOP_BUY_GOLD[res]} 🪙</button>
+        <button class="btn small sell" ${canSell ? "" : "disabled"}>Продати ${SHOP_SELL_BATCH[res]} → +${SHOP_SELL_GOLD[res]} 💰</button>
+        <button class="btn small buy" ${canBuy ? "" : "disabled"}>Купити ${SHOP_BUY_BATCH[res]} → -${SHOP_BUY_GOLD[res]} 💰</button>
       </div>
     `;
     row.querySelector(".sell").addEventListener("click", () => sellResource(res));
@@ -1303,7 +1303,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 26;
+const CURRENT_BUILD = 27;
 
 async function checkForUpdate() {
   try {
