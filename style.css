@@ -17,6 +17,7 @@
   --radius:20px;
   --radius-sm:13px;
   --shadow:0 16px 40px rgba(20,60,90,.18);
+  --shadow-glossy:0 16px 40px rgba(20,60,90,.18), inset 0 1px 0 rgba(255,255,255,.6);
   --display:'Baloo 2', sans-serif;
   --body:'Nunito', ui-sans-serif, system-ui, sans-serif;
 }
@@ -58,7 +59,7 @@ input, textarea{
 .levelBadge{
   display:flex; flex-direction:column; align-items:center; gap:3px;
   background:var(--panel); border-radius:16px; padding:6px 10px;
-  box-shadow:var(--shadow);
+  box-shadow:var(--shadow-glossy);
   min-width:52px;
 }
 .levelNum{font-family:var(--display); font-weight:800; font-size:16px; color:var(--coral); line-height:1;}
@@ -69,7 +70,7 @@ input, textarea{
 .resBar{
   display:flex; gap:6px; overflow-x:auto; scrollbar-width:none;
   background:var(--panel); border-radius:16px; padding:8px 8px;
-  box-shadow:var(--shadow);
+  box-shadow:var(--shadow-glossy);
   justify-content:space-between;
 }
 .resBar::-webkit-scrollbar{display:none;}
@@ -85,7 +86,7 @@ input, textarea{
 .iconbtn{
   position:relative;
   width:36px; height:36px; border-radius:12px; flex-shrink:0;
-  background:var(--panel); border:none; box-shadow:var(--shadow);
+  background:var(--panel); border:none; box-shadow:var(--shadow-glossy);
   font-size:15px; color:var(--ink); cursor:pointer;
   display:grid; place-items:center;
 }
@@ -129,32 +130,52 @@ input, textarea{
   clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
   transition:filter .12s;
 }
-.tile.land .tileDiamond{background:linear-gradient(160deg, var(--grass), var(--grass-dark));}
+.tile.land .tileDiamond{
+  background:
+    radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.28) 0%, transparent 45%),
+    linear-gradient(160deg, #93de7d 0%, var(--grass) 40%, var(--grass-dark) 100%);
+}
 .tile.dockTile .tileDiamond{
   background:
+    radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.18) 0%, transparent 45%),
     repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 3px, transparent 3px 14px),
-    linear-gradient(160deg, #9aa1ab, #5e6570);
+    linear-gradient(160deg, #aeb4bd, #9aa1ab 40%, #5e6570);
 }
 .tile.dockTile .tileEdge{background:#4a4f58;}
 
-.tile.zone-forest .tileDiamond{background:linear-gradient(160deg, #4a9c3f, #2c6b24);}
+.tile.zone-forest .tileDiamond{
+  background:
+    radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.22) 0%, transparent 45%),
+    linear-gradient(160deg, #6fc25f 0%, #4a9c3f 40%, #2c6b24 100%);
+}
 .tile.zone-forest .tileEdge{background:#265c1f;}
-.tile.zone-farm .tileDiamond{background:linear-gradient(160deg, #d4a24c, #a97c2e);}
+.tile.zone-farm .tileDiamond{
+  background:
+    radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.28) 0%, transparent 45%),
+    linear-gradient(160deg, #e8bc70 0%, #d4a24c 40%, #a97c2e 100%);
+}
 .tile.zone-farm .tileEdge{background:#8f6a26;}
 .tile.water .tileDiamond{
   background:
+    radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.22) 0%, transparent 40%),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22'><path d='M0 11 Q5.5 5 11 11 T22 11 T33 11 T44 11' stroke='white' stroke-opacity='0.5' stroke-width='2' fill='none'/></svg>"),
-    linear-gradient(160deg, var(--water), var(--water-dark));
-  background-size:44px 22px, 100% 100%;
-  background-repeat:repeat, no-repeat;
+    linear-gradient(160deg, #7bd6f5, var(--water) 45%, var(--water-dark));
+  background-size:100% 100%, 44px 22px, 100% 100%;
+  background-repeat:no-repeat, repeat, no-repeat;
 }
-.tile.lockedLand .tileDiamond{background:linear-gradient(160deg, var(--sand), var(--sand-dark)); opacity:.55;}
+.tile.lockedLand .tileDiamond{
+  background:
+    radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.25) 0%, transparent 45%),
+    linear-gradient(160deg, #f6e3b8, var(--sand) 45%, var(--sand-dark));
+  opacity:.55;
+}
 .tile.lockedWater .tileDiamond{
   background:
+    radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.18) 0%, transparent 40%),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22'><path d='M0 11 Q5.5 5 11 11 T22 11 T33 11 T44 11' stroke='white' stroke-opacity='0.45' stroke-width='2' fill='none'/></svg>"),
     linear-gradient(160deg, var(--water), var(--water-dark));
-  background-size:44px 22px, 100% 100%;
-  background-repeat:repeat, no-repeat;
+  background-size:100% 100%, 44px 22px, 100% 100%;
+  background-repeat:no-repeat, repeat, no-repeat;
   opacity:.5;
 }
 .tile:active .tileDiamond{filter:brightness(1.12);}
@@ -178,6 +199,13 @@ input, textarea{
   filter:drop-shadow(0 4px 4px rgba(0,0,0,.25));
 }
 .buildingIcon.dockIcon{ left:62%; }
+.buildingIcon::after{
+  content:"";
+  position:absolute; left:50%; bottom:-6px; transform:translateX(-50%);
+  width:70%; height:22%;
+  background:radial-gradient(ellipse, rgba(0,0,0,.28) 0%, transparent 72%);
+  z-index:-1;
+}
 
 .dockShed{
   position:absolute; transform:translate(-50%,-50%);
@@ -273,7 +301,11 @@ input, textarea{
   padding:12px 16px; font-family:var(--display); font-weight:700; font-size:14px;
   cursor:pointer;
 }
-.btn.primary{background:linear-gradient(135deg, var(--gold), var(--coral)); color:#fff;}
+.btn.primary{
+  background:linear-gradient(135deg, var(--gold), var(--coral));
+  color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 4px 10px rgba(244,178,63,.35);
+}
 .btn.ghost{background:var(--panel); color:var(--ink-soft);}
 .btn.full{width:100%;}
 .btn:active{transform:scale(.98);}
