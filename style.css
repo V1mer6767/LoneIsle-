@@ -123,7 +123,8 @@ input, textarea{
   left:0; top:0;
   cursor:pointer;
   transition:transform .32s ease;
-  will-change:transform;
+  content-visibility:auto;
+  contain-intrinsic-size:90px 70px;
 }
 .tileDiamond{
   position:absolute; inset:0;
@@ -206,6 +207,8 @@ input, textarea{
   pointer-events:none;
   z-index:5;
   transition:left .32s ease, top .32s ease;
+  content-visibility:auto;
+  contain-intrinsic-size:20px 20px;
 }
 
 .treasureIcon{font-size:52px; margin:6px 0;}
