@@ -253,6 +253,13 @@ input, textarea{
 .buildOptName{font-family:var(--display); font-weight:700; font-size:14px;}
 .buildOptDesc{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
 .buildOptCost{display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;}
+
+.shopRow{align-items:center;}
+.shopBtns{display:flex; flex-direction:column; gap:6px; flex-shrink:0;}
+.btn.small{padding:6px 10px; font-size:11.5px; white-space:nowrap;}
+.btn.small.sell{background:var(--grass-dim, rgba(127,206,107,.16)); border:1px solid rgba(127,206,107,.4); color:#3f8a2f;}
+.btn.small.buy{background:rgba(244,178,63,.16); border:1px solid rgba(244,178,63,.4); color:#a3730f;}
+.btn.small:disabled{opacity:.4;}
 .costChip{font-size:11px; font-weight:700; background:var(--panel-warm); border-radius:999px; padding:2px 7px;}
 .costChip.short{color:var(--coral);}
 

@@ -929,6 +929,34 @@ function openUnlockSheet(c, r, kind) {
       closeSheet();
     });
     $("buildList").appendChild(opt);
+
+    if (zoneKey === "plain") {
+      const landCount = Object.values(state.tiles).filter((t) => t.type === "land").length;
+      const goldCost = 8 + Math.round(landCount * 1.1);
+      const goldAfford = (state.resources.gold || 0) >= goldCost;
+      const goldOpt = document.createElement("div");
+      goldOpt.className = "buildOption" + (goldAfford ? "" : " disabled");
+      goldOpt.innerHTML = `
+        <div class="buildOptIcon">🪙</div>
+        <div class="buildOptInfo">
+          <div class="buildOptName">Забудова — оплатити золотом</div>
+          <div class="buildOptDesc">Той самий варіант, але замість дерева/каменю/їжі — просто золото</div>
+          <div class="buildOptCost">${costChips({ gold: goldCost }, goldAfford)}</div>
+        </div>
+      `;
+      goldOpt.addEventListener("click", () => {
+        if ((state.resources.gold || 0) < goldCost) return;
+        state.resources.gold -= goldCost;
+        state.tiles[coordKey(c, r)] = { type: isWater ? "water" : "land", building: null };
+        gainXP(8);
+        repositionBoatsIfTooClose();
+        renderWorld();
+        updateHeader();
+        saveGame();
+        closeSheet();
+      });
+      $("buildList").appendChild(goldOpt);
+    }
   }
   openSheet();
 }
@@ -1034,6 +1062,69 @@ function openManageTileSheet(c, r) {
   });
 
   openSheet();
+}
+
+/* ---------- shop ---------- */
+const SHOP_RES = ["wood", "stone", "food"];
+const SHOP_SELL_BATCH = { wood: 15, stone: 12, food: 15 };
+const SHOP_SELL_GOLD = { wood: 5, stone: 5, food: 5 };
+const SHOP_BUY_BATCH = { wood: 10, stone: 8, food: 10 };
+const SHOP_BUY_GOLD = { wood: 6, stone: 7, food: 6 };
+
+function sellResource(res) {
+  const batch = SHOP_SELL_BATCH[res];
+  if ((state.resources[res] || 0) < batch) return;
+  state.resources[res] -= batch;
+  addResource("gold", SHOP_SELL_GOLD[res]);
+  updateHeader();
+  saveGame();
+  renderShopSheet();
+}
+
+function buyResource(res) {
+  const cost = SHOP_BUY_GOLD[res];
+  if ((state.resources.gold || 0) < cost) return;
+  state.resources.gold -= cost;
+  addResource(res, SHOP_BUY_BATCH[res]);
+  updateHeader();
+  saveGame();
+  renderShopSheet();
+}
+
+function openShopSheet() {
+  renderShopSheet();
+  $("shopSheetBackdrop").style.display = "block";
+  $("shopSheet").style.display = "block";
+}
+function closeShopSheet() {
+  $("shopSheetBackdrop").style.display = "none";
+  $("shopSheet").style.display = "none";
+}
+
+function renderShopSheet() {
+  const list = $("shopList");
+  list.innerHTML = "";
+  SHOP_RES.forEach((res) => {
+    const have = state.resources[res] || 0;
+    const canSell = have >= SHOP_SELL_BATCH[res];
+    const canBuy = (state.resources.gold || 0) >= SHOP_BUY_GOLD[res];
+    const row = document.createElement("div");
+    row.className = "buildOption shopRow";
+    row.innerHTML = `
+      <div class="buildOptIcon">${RES_ICON[res]}</div>
+      <div class="buildOptInfo">
+        <div class="buildOptName">${res === "wood" ? "Дерево" : res === "stone" ? "Камінь" : "Їжа"}</div>
+        <div class="buildOptDesc">У тебе: ${formatNum(have)}</div>
+      </div>
+      <div class="shopBtns">
+        <button class="btn small sell" ${canSell ? "" : "disabled"}>Продати ${SHOP_SELL_BATCH[res]} → +${SHOP_SELL_GOLD[res]} 🪙</button>
+        <button class="btn small buy" ${canBuy ? "" : "disabled"}>Купити ${SHOP_BUY_BATCH[res]} → -${SHOP_BUY_GOLD[res]} 🪙</button>
+      </div>
+    `;
+    row.querySelector(".sell").addEventListener("click", () => sellResource(res));
+    row.querySelector(".buy").addEventListener("click", () => buyResource(res));
+    list.appendChild(row);
+  });
 }
 
 function costChips(cost, afford) {
@@ -1212,7 +1303,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 25;
+const CURRENT_BUILD = 26;
 
 async function checkForUpdate() {
   try {
@@ -1259,6 +1350,9 @@ function wire() {
   $("menuNewIsland").addEventListener("click", () => { closeMoreSheet(); openIslandSheet(); });
   $("menuWorkers").addEventListener("click", () => { closeMoreSheet(); openWorkerSheet(); });
   $("menuFishing").addEventListener("click", () => { closeMoreSheet(); openBoatSheet(); });
+  $("menuShop").addEventListener("click", () => { closeMoreSheet(); openShopSheet(); });
+  $("btnCloseShopSheet").addEventListener("click", closeShopSheet);
+  $("shopSheetBackdrop").addEventListener("click", closeShopSheet);
   $("menuReset").addEventListener("click", () => {
     closeMoreSheet();
     if (!confirm("Скинути весь прогрес і почати острів заново? Це не можна скасувати.")) return;

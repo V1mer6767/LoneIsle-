@@ -76,6 +76,10 @@
       <div class="buildOptIcon">🎣</div>
       <div class="buildOptInfo"><div class="buildOptName">Рибальство</div></div>
     </div>
+    <div class="buildOption" id="menuShop">
+      <div class="buildOptIcon">🏪</div>
+      <div class="buildOptInfo"><div class="buildOptName">Магазин</div></div>
+    </div>
     <div class="buildOption" id="menuReset">
       <div class="buildOptIcon">🗑️</div>
       <div class="buildOptInfo"><div class="buildOptName">Скинути прогрес</div></div>
@@ -104,6 +108,16 @@
 </div>
 
 <!-- Fishing / boats sheet -->
+<!-- Shop sheet -->
+<div id="shopSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="shopSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">🏪 Магазин</div>
+  <div class="buildOptDesc" style="padding:0 2px 12px;">Продавай зайві ресурси за золото або купуй ресурси, якщо золота більше, ніж потрібного матеріалу.</div>
+  <div class="buildList" id="shopList"></div>
+  <button id="btnCloseShopSheet" class="btn ghost full">Закрити</button>
+</div>
+
 <div id="boatSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
 <div id="boatSheet" class="sheet" style="display:none;">
   <div class="sheetHandle"></div>
@@ -134,7 +148,7 @@
   </div>
 </div>
 
-<div class="buildStamp" id="buildStamp">build v25</div>
+<div class="buildStamp" id="buildStamp">build v26</div>
 
 <script src="app.js"></script>
 </body>
