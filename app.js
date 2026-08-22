@@ -1607,8 +1607,104 @@ function pickTileAt(clientX, clientY) {
   return { c, r };
 }
 
+/* ---------- ambient music ---------- */
+const MUSIC_PREF_KEY = "loneisle_music_on";
+let musicOn = localStorage.getItem(MUSIC_PREF_KEY) === "true";
+let audioCtx = null;
+let masterGain = null;
+let musicTimer = null;
+let chordIndex = 0;
+
+const MUSIC_CHORDS = [
+  [220.0, 261.63, 329.63], // Am
+  [174.61, 220.0, 261.63], // F
+  [130.81, 164.81, 196.0], // C
+  [196.0, 246.94, 293.66], // G
+];
+const MUSIC_PENTATONIC = [440.0, 523.25, 587.33, 659.25, 783.99]; // A C D E G
+
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.11;
+    masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+}
+
+function playPad(freqs, dur) {
+  freqs.forEach((f) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = "triangle";
+    osc.frequency.value = f;
+    const t0 = audioCtx.currentTime;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(0.5, t0 + 1.5);
+    g.gain.linearRampToValueAtTime(0, t0 + dur);
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.1);
+  });
+}
+
+function playPluck(freq, when) {
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = "triangle";
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(0.35, when + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.8);
+  osc.connect(g);
+  g.connect(masterGain);
+  osc.start(when);
+  osc.stop(when + 0.9);
+}
+
+function scheduleNextChord() {
+  if (!musicOn) return;
+  const chordDur = 4.2;
+  playPad(MUSIC_CHORDS[chordIndex], chordDur);
+  const numPlucks = 1 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < numPlucks; i++) {
+    const note = MUSIC_PENTATONIC[Math.floor(Math.random() * MUSIC_PENTATONIC.length)];
+    const offset = 0.6 + Math.random() * (chordDur - 1.2);
+    playPluck(note, audioCtx.currentTime + offset);
+  }
+  chordIndex = (chordIndex + 1) % MUSIC_CHORDS.length;
+  musicTimer = setTimeout(scheduleNextChord, chordDur * 1000);
+}
+
+function startMusic() {
+  ensureAudio();
+  if (musicTimer) return;
+  scheduleNextChord();
+}
+function stopMusic() {
+  if (musicTimer) {
+    clearTimeout(musicTimer);
+    musicTimer = null;
+  }
+}
+
+function toggleMusic() {
+  musicOn = !musicOn;
+  localStorage.setItem(MUSIC_PREF_KEY, String(musicOn));
+  if (musicOn) startMusic();
+  else stopMusic();
+  updateMusicLabel();
+}
+
+function updateMusicLabel() {
+  const el = $("menuMusicLabel");
+  if (el) el.textContent = "Музика: " + (musicOn ? "увімкнено" : "вимкнено");
+}
+
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 41;
+const CURRENT_BUILD = 42;
 
 async function checkForUpdate() {
   try {
@@ -1661,6 +1757,7 @@ function wire() {
   $("btnShop").addEventListener("click", openShopSheet);
   $("btnCloseShopSheet").addEventListener("click", closeShopSheet);
   $("shopSheetBackdrop").addEventListener("click", closeShopSheet);
+  $("menuMusic").addEventListener("click", () => { toggleMusic(); });
   $("menuReset").addEventListener("click", () => {
     closeMoreSheet();
     if (!confirm("Скинути весь прогрес і почати острів заново? Це не можна скасувати.")) return;
@@ -1707,6 +1804,14 @@ function init() {
   renderWorld();
   updateHeader();
   if (state.outerBanksUnlocked) $("btnLighthouse").style.display = "";
+  updateMusicLabel();
+  if (musicOn) {
+    const resumeMusic = () => {
+      startMusic();
+      document.removeEventListener("pointerdown", resumeMusic);
+    };
+    document.addEventListener("pointerdown", resumeMusic, { once: true });
+  }
 
   if (gapMs > 30000) {
     const totals = collectAll();
