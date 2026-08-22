@@ -1609,11 +1609,18 @@ function pickTileAt(clientX, clientY) {
 
 /* ---------- ambient music ---------- */
 const MUSIC_PREF_KEY = "loneisle_music_on";
+const MUSIC_TRACK_KEY = "loneisle_music_track";
 let musicOn = localStorage.getItem(MUSIC_PREF_KEY) === "true";
+let musicTrack = localStorage.getItem(MUSIC_TRACK_KEY) || "island";
 let audioCtx = null;
 let masterGain = null;
 let musicTimer = null;
 let chordIndex = 0;
+
+const MUSIC_TRACKS = {
+  island: { name: "Острівна мелодія", icon: "🏝️" },
+  minecraft: { name: "Спокійна (у стилі Minecraft)", icon: "⛏️" },
+};
 
 const MUSIC_CHORDS = [
   [220.0, 261.63, 329.63], // Am
@@ -1622,6 +1629,7 @@ const MUSIC_CHORDS = [
   [196.0, 246.94, 293.66], // G
 ];
 const MUSIC_PENTATONIC = [440.0, 523.25, 587.33, 659.25, 783.99]; // A C D E G
+const MC_SCALE = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33]; // C D E G A C D — soft major scale
 
 function ensureAudio() {
   if (!audioCtx) {
@@ -1629,6 +1637,18 @@ function ensureAudio() {
     masterGain = audioCtx.createGain();
     masterGain.gain.value = 0.11;
     masterGain.connect(audioCtx.destination);
+
+    const delay = audioCtx.createDelay(1.2);
+    delay.delayTime.value = 0.42;
+    const feedback = audioCtx.createGain();
+    feedback.gain.value = 0.32;
+    const wet = audioCtx.createGain();
+    wet.gain.value = 0.55;
+    masterGain.connect(delay);
+    delay.connect(feedback);
+    feedback.connect(delay);
+    delay.connect(wet);
+    wet.connect(audioCtx.destination);
   }
   if (audioCtx.state === "suspended") audioCtx.resume();
 }
@@ -1664,8 +1684,22 @@ function playPluck(freq, when) {
   osc.stop(when + 0.9);
 }
 
+function playBell(freq, when, vol) {
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(vol, when + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 3.2);
+  osc.connect(g);
+  g.connect(masterGain);
+  osc.start(when);
+  osc.stop(when + 3.3);
+}
+
 function scheduleNextChord() {
-  if (!musicOn) return;
+  if (!musicOn || musicTrack !== "island") return;
   const chordDur = 4.2;
   playPad(MUSIC_CHORDS[chordIndex], chordDur);
   const numPlucks = 1 + Math.floor(Math.random() * 2);
@@ -1678,10 +1712,25 @@ function scheduleNextChord() {
   musicTimer = setTimeout(scheduleNextChord, chordDur * 1000);
 }
 
+function scheduleMinecraftNote() {
+  if (!musicOn || musicTrack !== "minecraft") return;
+  const note = MC_SCALE[Math.floor(Math.random() * MC_SCALE.length)];
+  playBell(note, audioCtx.currentTime + 0.05, 0.28);
+  if (Math.random() < 0.35) {
+    playBell(note / 2, audioCtx.currentTime + 0.05, 0.14);
+  }
+  const nextDelay = 2200 + Math.random() * 3200;
+  musicTimer = setTimeout(scheduleMinecraftNote, nextDelay);
+}
+
 function startMusic() {
   ensureAudio();
   if (musicTimer) return;
-  scheduleNextChord();
+  if (musicTrack === "minecraft") scheduleMinecraftNote();
+  else {
+    chordIndex = 0;
+    scheduleNextChord();
+  }
 }
 function stopMusic() {
   if (musicTimer) {
@@ -1690,21 +1739,67 @@ function stopMusic() {
   }
 }
 
-function toggleMusic() {
-  musicOn = !musicOn;
-  localStorage.setItem(MUSIC_PREF_KEY, String(musicOn));
-  if (musicOn) startMusic();
-  else stopMusic();
-  updateMusicLabel();
+function selectMusicTrack(track) {
+  musicTrack = track;
+  localStorage.setItem(MUSIC_TRACK_KEY, track);
+  musicOn = true;
+  localStorage.setItem(MUSIC_PREF_KEY, "true");
+  stopMusic();
+  startMusic();
+  renderMusicSheet();
 }
 
-function updateMusicLabel() {
-  const el = $("menuMusicLabel");
-  if (el) el.textContent = "Музика: " + (musicOn ? "увімкнено" : "вимкнено");
+function turnOffMusic() {
+  musicOn = false;
+  localStorage.setItem(MUSIC_PREF_KEY, "false");
+  stopMusic();
+  renderMusicSheet();
+}
+
+function openMusicSheet() {
+  renderMusicSheet();
+  $("musicSheetBackdrop").style.display = "block";
+  $("musicSheet").style.display = "block";
+}
+function closeMusicSheet() {
+  $("musicSheetBackdrop").style.display = "none";
+  $("musicSheet").style.display = "none";
+}
+
+function renderMusicSheet() {
+  const list = $("musicList");
+  list.innerHTML = "";
+
+  Object.entries(MUSIC_TRACKS).forEach(([key, def]) => {
+    const active = musicOn && musicTrack === key;
+    const row = document.createElement("div");
+    row.className = "buildOption" + (active ? " musicActive" : "");
+    row.innerHTML = `
+      <div class="buildOptIcon">${def.icon}</div>
+      <div class="buildOptInfo">
+        <div class="buildOptName">${def.name}</div>
+        <div class="buildOptDesc">${active ? "▶ Зараз грає" : "Тапни, щоб увімкнути"}</div>
+      </div>
+    `;
+    row.addEventListener("click", () => selectMusicTrack(key));
+    list.appendChild(row);
+  });
+
+  const offRow = document.createElement("div");
+  offRow.className = "buildOption" + (!musicOn ? " musicActive" : "");
+  offRow.innerHTML = `
+    <div class="buildOptIcon">🔇</div>
+    <div class="buildOptInfo">
+      <div class="buildOptName">Вимкнути музику</div>
+      <div class="buildOptDesc">${!musicOn ? "Зараз вимкнено" : ""}</div>
+    </div>
+  `;
+  offRow.addEventListener("click", turnOffMusic);
+  list.appendChild(offRow);
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 42;
+const CURRENT_BUILD = 43;
 
 async function checkForUpdate() {
   try {
@@ -1757,7 +1852,9 @@ function wire() {
   $("btnShop").addEventListener("click", openShopSheet);
   $("btnCloseShopSheet").addEventListener("click", closeShopSheet);
   $("shopSheetBackdrop").addEventListener("click", closeShopSheet);
-  $("menuMusic").addEventListener("click", () => { toggleMusic(); });
+  $("menuMusic").addEventListener("click", () => { closeMoreSheet(); openMusicSheet(); });
+  $("btnCloseMusicSheet").addEventListener("click", closeMusicSheet);
+  $("musicSheetBackdrop").addEventListener("click", closeMusicSheet);
   $("menuReset").addEventListener("click", () => {
     closeMoreSheet();
     if (!confirm("Скинути весь прогрес і почати острів заново? Це не можна скасувати.")) return;
@@ -1804,7 +1901,6 @@ function init() {
   renderWorld();
   updateHeader();
   if (state.outerBanksUnlocked) $("btnLighthouse").style.display = "";
-  updateMusicLabel();
   if (musicOn) {
     const resumeMusic = () => {
       startMusic();

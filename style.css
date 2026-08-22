@@ -216,6 +216,10 @@ input, textarea{
   border:2px solid rgba(244,178,63,.5) !important;
   background:linear-gradient(135deg, rgba(244,178,63,.1), rgba(255,122,99,.08)) !important;
 }
+.musicActive{
+  border:2px solid rgba(127,206,107,.55) !important;
+  background:linear-gradient(135deg, rgba(127,206,107,.14), rgba(127,206,107,.06)) !important;
+}
 
 .buildingIcon{
   position:absolute; left:50%; top:38%; transform:translate(-50%,-60%);

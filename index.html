@@ -92,7 +92,7 @@
     </div>
     <div class="buildOption" id="menuMusic">
       <div class="buildOptIcon">🎵</div>
-      <div class="buildOptInfo"><div class="buildOptName" id="menuMusicLabel">Музика: вимкнено</div></div>
+      <div class="buildOptInfo"><div class="buildOptName">Музика</div></div>
     </div>
     <div class="buildOption" id="menuReset">
       <div class="buildOptIcon">🗑️</div>
@@ -155,6 +155,15 @@
 
 <!-- Welcome back overlay -->
 <!-- Black market sheet -->
+<!-- Music sheet -->
+<div id="musicSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="musicSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">🎵 Музика</div>
+  <div class="buildList" id="musicList"></div>
+  <button id="btnCloseMusicSheet" class="btn ghost full">Закрити</button>
+</div>
+
 <div id="marketSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
 <div id="marketSheet" class="sheet" style="display:none;">
   <div class="sheetHandle"></div>
@@ -208,7 +217,7 @@
   </div>
 </div>
 
-<div class="buildStamp" id="buildStamp">build v42</div>
+<div class="buildStamp" id="buildStamp">build v43</div>
 
 <script src="app.js"></script>
 </body>
