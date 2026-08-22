@@ -212,6 +212,10 @@ input, textarea{
 }
 
 .treasureIcon{font-size:52px; margin:6px 0;}
+.legendaryRow{
+  border:2px solid rgba(244,178,63,.5) !important;
+  background:linear-gradient(135deg, rgba(244,178,63,.1), rgba(255,122,99,.08)) !important;
+}
 
 .buildingIcon{
   position:absolute; left:50%; top:38%; transform:translate(-50%,-60%);

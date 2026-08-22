@@ -1156,11 +1156,14 @@ function openManageTileSheet(c, r) {
 
 /* ---------- treasures & black market ---------- */
 const TREASURE_DEFS = {
-  gem: { name: "Коштовний камінь", icon: "💎", baseValue: 220 },
-  vase: { name: "Стародавня ваза", icon: "🏺", baseValue: 160 },
-  crown: { name: "Корона", icon: "👑", baseValue: 380 },
-  sword: { name: "Стародавній меч", icon: "🗡️", baseValue: 260 },
-  necklace: { name: "Намисто", icon: "📿", baseValue: 190 },
+  gem: { name: "Коштовний камінь", icon: "💎", baseValue: 220, weight: 15 },
+  vase: { name: "Стародавня ваза", icon: "🏺", baseValue: 160, weight: 15 },
+  crown: { name: "Корона", icon: "👑", baseValue: 380, weight: 15 },
+  sword: { name: "Стародавній меч", icon: "🗡️", baseValue: 260, weight: 15 },
+  necklace: { name: "Намисто", icon: "📿", baseValue: 190, weight: 15 },
+  blueCrown: { name: "Синя корона", icon: "👑", iconFilter: "hue-rotate(180deg) saturate(2)", minValue: 5000, maxValue: 8000, weight: 1, legendary: true },
+  domingoCross: { name: "Хрест Домінго", icon: "✝️", minValue: 7000, maxValue: 10000, weight: 1, legendary: true },
+  merchantGold: { name: "Золото купця", icon: "💰", minValue: 10000, maxValue: 50000, weight: 1, legendary: true },
 };
 const TREASURE_CHANCE = 0.18;
 const BLACK_MARKET_BUYERS = ["Загадковий колекціонер", "Портовий торговець", "Заможний купець", "Таємничий незнайомець", "Мандрівний скупник", "Старий капітан"];
@@ -1170,10 +1173,21 @@ let blackMarketOffers = {};
 
 let lastTreasureTileKey = null;
 
+function pickTreasureType() {
+  const entries = Object.entries(TREASURE_DEFS);
+  const total = entries.reduce((s, [, def]) => s + (def.weight || 1), 0);
+  let roll = Math.random() * total;
+  for (const [type, def] of entries) {
+    const w = def.weight || 1;
+    if (roll < w) return type;
+    roll -= w;
+  }
+  return entries[0][0];
+}
+
 function maybeFindTreasure(c, r) {
   if (Math.random() >= TREASURE_CHANCE) return;
-  const types = Object.keys(TREASURE_DEFS);
-  const type = types[Math.floor(Math.random() * types.length)];
+  const type = pickTreasureType();
   state.treasures[type] = (state.treasures[type] || 0) + 1;
   const key = coordKey(c, r);
   const tile = state.tiles[key];
@@ -1187,12 +1201,16 @@ function maybeFindTreasure(c, r) {
 function showTreasureFound(type) {
   const def = TREASURE_DEFS[type];
   $("treasureIcon").textContent = def.icon;
-  $("treasureName").textContent = def.name;
+  $("treasureIcon").style.filter = def.iconFilter || "none";
+  $("treasureName").textContent = (def.legendary ? "✨ РІДКІСНИЙ СКАРБ! " : "") + def.name;
   $("treasureOverlay").style.display = "flex";
 }
 
-function rollBuyerOffer(baseValue) {
-  return Math.round(baseValue * (0.7 + Math.random() * 0.6));
+function rollBuyerOffer(def) {
+  if (typeof def.minValue === "number" && typeof def.maxValue === "number") {
+    return Math.round(def.minValue + Math.random() * (def.maxValue - def.minValue));
+  }
+  return Math.round(def.baseValue * (0.7 + Math.random() * 0.6));
 }
 
 function openMarketSheet() {
@@ -1201,7 +1219,7 @@ function openMarketSheet() {
     if ((state.treasures[type] || 0) <= 0) continue;
     blackMarketOffers[type] = {
       buyer: BLACK_MARKET_BUYERS[Math.floor(Math.random() * BLACK_MARKET_BUYERS.length)],
-      price: rollBuyerOffer(TREASURE_DEFS[type].baseValue),
+      price: rollBuyerOffer(TREASURE_DEFS[type]),
     };
   }
   renderMarketSheet();
@@ -1244,13 +1262,13 @@ function renderMarketSheet() {
     const offer = blackMarketOffers[type];
     const count = state.treasures[type];
     const row = document.createElement("div");
-    row.className = "buildOption";
+    row.className = "buildOption" + (def.legendary ? " legendaryRow" : "");
     row.innerHTML = `
-      <div class="buildOptIcon">${def.icon}</div>
+      <div class="buildOptIcon" style="filter:${def.iconFilter || "none"};">${def.icon}</div>
       <div class="buildOptInfo">
-        <div class="buildOptName">${def.name} × ${count}</div>
+        <div class="buildOptName">${def.legendary ? "✨ " : ""}${def.name} × ${count}</div>
         <div class="buildOptDesc">${offer.buyer} пропонує</div>
-        <div class="buildOptCost"><span class="costChip">💰 ${offer.price}</span></div>
+        <div class="buildOptCost"><span class="costChip">💰 ${formatNum(offer.price)}</span></div>
       </div>
       <div class="shopBtns">
         <button class="btn small sell">Продати</button>
