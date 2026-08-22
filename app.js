@@ -1329,21 +1329,36 @@ const SHOP_SELL_GOLD = { wood: 5, stone: 5, food: 5, fish: 6, meat: 8 };
 const SHOP_BUY_BATCH = { wood: 10, stone: 8, food: 10, fish: 8, meat: 6 };
 const SHOP_BUY_GOLD = { wood: 6, stone: 7, food: 6, fish: 7, meat: 9 };
 
+function sellRate(res) {
+  return SHOP_SELL_GOLD[res] / SHOP_SELL_BATCH[res];
+}
+function buyRate(res) {
+  return SHOP_BUY_GOLD[res] / SHOP_BUY_BATCH[res];
+}
+
 function sellResource(res) {
-  const batch = SHOP_SELL_BATCH[res];
-  if ((state.resources[res] || 0) < batch) return;
-  state.resources[res] -= batch;
-  addResource("gold", SHOP_SELL_GOLD[res]);
+  const input = $(`qty-${res}`);
+  let qty = Math.max(1, Math.floor(Number(input ? input.value : 0) || 0));
+  const have = state.resources[res] || 0;
+  qty = Math.min(qty, have);
+  if (qty <= 0) return;
+  const gold = Math.round(qty * sellRate(res));
+  state.resources[res] -= qty;
+  addResource("gold", gold);
   updateHeader();
   saveGame();
   renderShopSheet();
 }
 
 function buyResource(res) {
-  const cost = SHOP_BUY_GOLD[res];
-  if ((state.resources.gold || 0) < cost) return;
+  const input = $(`qty-${res}`);
+  let qty = Math.max(1, Math.floor(Number(input ? input.value : 0) || 0));
+  const maxAffordable = Math.floor((state.resources.gold || 0) / buyRate(res));
+  qty = Math.min(qty, maxAffordable);
+  if (qty <= 0) return;
+  const cost = Math.round(qty * buyRate(res));
   state.resources.gold -= cost;
-  addResource(res, SHOP_BUY_BATCH[res]);
+  addResource(res, qty);
   updateHeader();
   saveGame();
   renderShopSheet();
@@ -1364,21 +1379,29 @@ function renderShopSheet() {
   list.innerHTML = "";
   SHOP_RES.forEach((res) => {
     const have = state.resources[res] || 0;
-    const canSell = have >= SHOP_SELL_BATCH[res];
-    const canBuy = (state.resources.gold || 0) >= SHOP_BUY_GOLD[res];
+    const gold = state.resources.gold || 0;
+    const maxBuyable = Math.floor(gold / buyRate(res));
     const row = document.createElement("div");
-    row.className = "buildOption shopRow";
+    row.className = "buildOption shopRowQty";
     row.innerHTML = `
-      <div class="buildOptIcon">${RES_ICON[res]}</div>
-      <div class="buildOptInfo">
-        <div class="buildOptName">${res === "wood" ? "Дерево" : res === "stone" ? "Камінь" : res === "fish" ? "Риба" : res === "meat" ? "М'ясо" : "Культури"}</div>
-        <div class="buildOptDesc">У тебе: ${formatNum(have)}</div>
+      <div class="shopRowTop">
+        <div class="buildOptIcon">${RES_ICON[res]}</div>
+        <div class="buildOptInfo">
+          <div class="buildOptName">${res === "wood" ? "Дерево" : res === "stone" ? "Камінь" : res === "fish" ? "Риба" : res === "meat" ? "М'ясо" : "Культури"}</div>
+          <div class="buildOptDesc">У тебе: ${formatNum(have)} · курс: ${sellRate(res).toFixed(2)} / ${buyRate(res).toFixed(2)} 💰 за од.</div>
+        </div>
       </div>
-      <div class="shopBtns">
-        <button class="btn small sell" ${canSell ? "" : "disabled"}>Продати ${SHOP_SELL_BATCH[res]} → +${SHOP_SELL_GOLD[res]} 💰</button>
-        <button class="btn small buy" ${canBuy ? "" : "disabled"}>Купити ${SHOP_BUY_BATCH[res]} → -${SHOP_BUY_GOLD[res]} 💰</button>
+      <div class="shopQtyRow">
+        <input type="number" id="qty-${res}" class="qtyInput" min="1" value="${Math.max(1, Math.min(have, SHOP_SELL_BATCH[res]))}" />
+        <button class="btn small ghost qtyMax">Все</button>
+        <button class="btn small sell" ${have > 0 ? "" : "disabled"}>Продати</button>
+        <button class="btn small buy" ${maxBuyable > 0 ? "" : "disabled"}>Купити</button>
       </div>
     `;
+    row.querySelector(".qtyMax").addEventListener("click", () => {
+      const input = row.querySelector(".qtyInput");
+      input.value = Math.max(1, Math.max(have, maxBuyable) || 1);
+    });
     row.querySelector(".sell").addEventListener("click", () => sellResource(res));
     row.querySelector(".buy").addEventListener("click", () => buyResource(res));
     list.appendChild(row);
@@ -1567,7 +1590,7 @@ function pickTileAt(clientX, clientY) {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 40;
+const CURRENT_BUILD = 41;
 
 async function checkForUpdate() {
   try {
