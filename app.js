@@ -378,6 +378,7 @@ function pickBoatAt(clientX, clientY) {
 }
 
 function openBoatSheet() {
+  markSheetOpened();
   renderBoatSheet();
   $("boatSheetBackdrop").style.display = "block";
   $("boatSheet").style.display = "block";
@@ -568,6 +569,7 @@ function renderWorkers() {
 }
 
 function openWorkerSheet() {
+  markSheetOpened();
   renderWorkerSheet();
   $("workerSheetBackdrop").style.display = "block";
   $("workerSheet").style.display = "block";
@@ -649,6 +651,7 @@ function flyTo(c, r) {
 }
 
 function openIslandSheet() {
+  markSheetOpened();
   renderIslandSheet();
   $("islandSheetBackdrop").style.display = "block";
   $("islandSheet").style.display = "block";
@@ -1214,6 +1217,7 @@ function rollBuyerOffer(def) {
 }
 
 function openMarketSheet() {
+  markSheetOpened();
   blackMarketOffers = {};
   for (const type of Object.keys(TREASURE_DEFS)) {
     if ((state.treasures[type] || 0) <= 0) continue;
@@ -1383,6 +1387,7 @@ function buyResource(res) {
 }
 
 function openShopSheet() {
+  markSheetOpened();
   renderShopSheet();
   $("shopSheetBackdrop").style.display = "block";
   $("shopSheet").style.display = "block";
@@ -1437,6 +1442,7 @@ function costChips(cost, afford) {
 }
 
 function openSheet() {
+  markSheetOpened();
   $("sheetBackdrop").style.display = "block";
   $("buildSheet").style.display = "block";
 }
@@ -1516,6 +1522,24 @@ function zoomButton(factor) {
   const vpRect = $("viewport").getBoundingClientRect();
   zoomAround(vpRect.left + vpRect.width / 2, vpRect.top + vpRect.height / 2, scale * factor);
 }
+
+let sheetOpenedAt = 0;
+function markSheetOpened() {
+  sheetOpenedAt = Date.now();
+}
+document.addEventListener(
+  "click",
+  (e) => {
+    if (Date.now() - sheetOpenedAt < 450) {
+      const opt = e.target.closest && e.target.closest(".sheet .buildOption");
+      if (opt) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+  },
+  true
+);
 
 function wirePanning() {
   const viewport = $("viewport");
@@ -1759,6 +1783,7 @@ function turnOffMusic() {
 }
 
 function openMusicSheet() {
+  markSheetOpened();
   renderMusicSheet();
   $("musicSheetBackdrop").style.display = "block";
   $("musicSheet").style.display = "block";
@@ -1801,7 +1826,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 44;
+const CURRENT_BUILD = 45;
 
 async function checkForUpdate() {
   try {
