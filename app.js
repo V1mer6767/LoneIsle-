@@ -1522,6 +1522,7 @@ function wirePanning() {
   let down = false, moved = false, startX = 0, startY = 0, origX = 0, origY = 0;
 
   viewport.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
     viewport.setPointerCapture(e.pointerId);
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -1569,6 +1570,7 @@ function wirePanning() {
   });
 
   const end = (e) => {
+    e.preventDefault();
     activePointers.delete(e.pointerId);
     if (activePointers.size >= 1) {
       // still at least one finger down: restart single-drag reference from here
@@ -1799,7 +1801,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 43;
+const CURRENT_BUILD = 44;
 
 async function checkForUpdate() {
   try {
