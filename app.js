@@ -11,9 +11,9 @@ const BUILDING_DEFS = {
   house: { id: "house", name: "Хатина", icon: "🏠", unlockLevel: 4, baseCost: { wood: 18, stone: 10 }, produce: { res: "gold", interval: 10000, cap: 40 }, desc: "Приносить золото з часом" },
   dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 22, stone: 14, food: 7 }, produce: { res: "gold", interval: 9000, cap: 30 }, special: "dock", desc: "Відкриває забудову на воді й приносить золото від портових зборів" },
   boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 18, gold: 10 }, produce: { res: "fish", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
-  cow: { id: "cow", name: "Корівник", icon: "🐄", unlockLevel: 5, baseCost: { wood: 20, food: 10 }, produce: { res: "meat", interval: 7000, cap: 40 }, desc: "Дає м'ясо, зникає після кількох забоїв" },
-  pig: { id: "pig", name: "Свинарник", icon: "🐖", unlockLevel: 5, baseCost: { wood: 18, food: 8 }, produce: { res: "meat", interval: 6000, cap: 45 }, desc: "Дає м'ясо, зникає після кількох забоїв" },
-  bull: { id: "bull", name: "Загін для биків", icon: "🐂", unlockLevel: 6, baseCost: { wood: 26, food: 14 }, produce: { res: "meat", interval: 8500, cap: 35 }, desc: "Дає м'ясо, зникає після кількох забоїв" },
+  cow: { id: "cow", name: "Корівник", icon: "🐄", unlockLevel: 5, baseCost: { wood: 20, food: 10 }, produce: { res: "meat", interval: 7000, cap: 40 }, desc: "Виробляє м'ясо з часом" },
+  pig: { id: "pig", name: "Свинарник", icon: "🐖", unlockLevel: 5, baseCost: { wood: 18, food: 8 }, produce: { res: "meat", interval: 6000, cap: 45 }, desc: "Виробляє м'ясо з часом" },
+  bull: { id: "bull", name: "Загін для биків", icon: "🐂", unlockLevel: 6, baseCost: { wood: 26, food: 14 }, produce: { res: "meat", interval: 8500, cap: 35 }, desc: "Виробляє м'ясо з часом" },
   townhouse: { id: "townhouse", name: "Будинок", icon: "🏘️", unlockLevel: 50, baseCost: { wood: 40, stone: 20 }, produce: { res: "gold", interval: 8000, cap: 60 }, desc: "Приносить дохід від оренди" },
   restaurant: { id: "restaurant", name: "Ресторан", icon: "🍽️", unlockLevel: 50, baseCost: { wood: 60, food: 30, stone: 20 }, produce: { res: "gold", interval: 9000, cap: 100 }, desc: "Приносить дохід від гостей Outer Banks" },
   townshop: { id: "townshop", name: "Крамниця", icon: "🏪", unlockLevel: 50, baseCost: { wood: 50, stone: 30 }, produce: { res: "gold", interval: 7000, cap: 80 }, desc: "Приносить дохід від туристів" },
@@ -213,21 +213,15 @@ function unlockCost(kind) {
 
 /* ---------- production ---------- */
 const ANIMAL_BUILDING_IDS = ["cow", "pig", "bull"];
-const HARVESTS_PER_ANIMAL = 3;
 
 function isAnimalBuilding(id) {
   return ANIMAL_BUILDING_IDS.includes(id);
 }
 
-function depleteAnimalIfNeeded(c, r) {
-  const tile = state.tiles[coordKey(c, r)];
-  if (!tile || !tile.building || !isAnimalBuilding(tile.building.id)) return false;
-  if (typeof tile.building.harvestsLeft !== "number") tile.building.harvestsLeft = HARVESTS_PER_ANIMAL;
-  tile.building.harvestsLeft -= 1;
-  if (tile.building.harvestsLeft <= 0) {
-    tile.building = null;
-    return true;
-  }
+function depleteAnimalIfNeeded() {
+  // Animals used to disappear after a few harvests — removed per
+  // request, they now stay permanently and keep producing meat
+  // indefinitely, same as every other building.
   return false;
 }
 
@@ -1826,7 +1820,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 45;
+const CURRENT_BUILD = 46;
 
 async function checkForUpdate() {
   try {
