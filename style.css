@@ -133,47 +133,59 @@ input, textarea{
   width:var(--tw); height:var(--th);
   left:0; top:0;
   cursor:pointer;
-  transition:transform .32s ease;
+  transition:transform .32s ease, filter .12s;
   content-visibility:auto;
   contain-intrinsic-size:90px 70px;
 }
-.tileDiamond{
+.tile::before{
+  content:"";
   position:absolute; inset:0;
   clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  transition:filter .12s;
+  z-index:0;
 }
-.tile.land .tileDiamond{
+.tile::after{
+  content:"";
+  position:absolute; left:8%; right:8%; bottom:-14%; height:22%;
+  clip-path:polygon(50% 30%, 100% 0%, 100% 60%, 50% 100%, 0% 60%, 0% 0%);
+  opacity:.35; pointer-events:none;
+  background:transparent;
+  z-index:0;
+}
+.tile.land::after{background:var(--grass-dark);}
+.tile.water::after{background:var(--water-dark);}
+
+.tile.land::before{
   background:
     radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.28) 0%, transparent 45%),
     linear-gradient(160deg, #93de7d 0%, var(--grass) 40%, var(--grass-dark) 100%);
 }
-.tile.dockTile .tileDiamond{
+.tile.dockTile::before{
   background:
     radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.18) 0%, transparent 45%),
     repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 3px, transparent 3px 14px),
     linear-gradient(160deg, #aeb4bd, #9aa1ab 40%, #5e6570);
 }
-.tile.dockTile .tileEdge{background:#4a4f58;}
+.tile.dockTile::after{background:#4a4f58;}
 
-.tile.zone-forest .tileDiamond{
+.tile.zone-forest::before{
   background:
     radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.22) 0%, transparent 45%),
     linear-gradient(160deg, #6fc25f 0%, #4a9c3f 40%, #2c6b24 100%);
 }
-.tile.zone-forest .tileEdge{background:#265c1f;}
-.tile.zone-farm .tileDiamond{
+.tile.zone-forest::after{background:#265c1f;}
+.tile.zone-farm::before{
   background:
     radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.28) 0%, transparent 45%),
     linear-gradient(160deg, #e8bc70 0%, #d4a24c 40%, #a97c2e 100%);
 }
-.tile.zone-farm .tileEdge{background:#8f6a26;}
-.tile.zone-animals .tileDiamond{
+.tile.zone-farm::after{background:#8f6a26;}
+.tile.zone-animals::before{
   background:
     radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.32) 0%, transparent 45%),
     linear-gradient(160deg, #fbe9b8 0%, var(--sand) 45%, var(--sand-dark) 100%);
 }
-.tile.zone-animals .tileEdge{background:#b28d47;}
-.tile.water .tileDiamond{
+.tile.zone-animals::after{background:#b28d47;}
+.tile.water::before{
   background:
     radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.22) 0%, transparent 40%),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22'><path d='M0 11 Q5.5 5 11 11 T22 11 T33 11 T44 11' stroke='white' stroke-opacity='0.5' stroke-width='2' fill='none'/></svg>"),
@@ -181,13 +193,13 @@ input, textarea{
   background-size:100% 100%, 44px 22px, 100% 100%;
   background-repeat:no-repeat, repeat, no-repeat;
 }
-.tile.lockedLand .tileDiamond{
+.tile.lockedLand::before{
   background:
     radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.25) 0%, transparent 45%),
     linear-gradient(160deg, #f6e3b8, var(--sand) 45%, var(--sand-dark));
   opacity:.55;
 }
-.tile.lockedWater .tileDiamond{
+.tile.lockedWater::before{
   background:
     radial-gradient(120% 90% at 30% 12%, rgba(255,255,255,.18) 0%, transparent 40%),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22'><path d='M0 11 Q5.5 5 11 11 T22 11 T33 11 T44 11' stroke='white' stroke-opacity='0.45' stroke-width='2' fill='none'/></svg>"),
@@ -196,15 +208,8 @@ input, textarea{
   background-repeat:no-repeat, repeat, no-repeat;
   opacity:.5;
 }
-.tile:active .tileDiamond{filter:brightness(1.12);}
-
-.tileEdge{
-  position:absolute; left:8%; right:8%; bottom:-14%; height:22%;
-  clip-path:polygon(50% 30%, 100% 0%, 100% 60%, 50% 100%, 0% 60%, 0% 0%);
-  opacity:.35; pointer-events:none;
-}
-.tile.land .tileEdge{background:var(--grass-dark);}
-.tile.water .tileEdge{background:var(--water-dark);}
+.tile:active::before{filter:brightness(1.12);}
+.tile.noEdge::after{content:none;}
 
 .tileLockIcon{
   position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);

@@ -811,24 +811,12 @@ function buildTileEl(c, r, cssType, tile) {
   const isDock = tile && tile.building && tile.building.id === "dock";
   const zoneKey = tileZoneKey(tile);
   const zoneClass = zoneKey !== "empty" && zoneKey !== "dock" ? ` zone-${zoneKey}` : "";
+  const merged = (cssType === "land" || cssType === "water") && zoneKey !== "empty" && hasSameZoneNeighbor(c, r, zoneKey);
   const el = document.createElement("div");
-  el.className = `tile ${cssType}${isDock ? " dockTile" : ""}${zoneClass}`;
+  el.className = `tile ${cssType}${isDock ? " dockTile" : ""}${zoneClass}${merged ? " noEdge" : ""}`;
   setWorldPos(el, x, y);
   el.dataset.c = c;
   el.dataset.r = r;
-
-  const diamond = document.createElement("div");
-  diamond.className = "tileDiamond";
-  el.appendChild(diamond);
-
-  if (cssType === "land" || cssType === "water") {
-    const merged = zoneKey !== "empty" && hasSameZoneNeighbor(c, r, zoneKey);
-    if (!merged) {
-      const edge = document.createElement("div");
-      edge.className = "tileEdge";
-      el.appendChild(edge);
-    }
-  }
 
   if (cssType === "lockedLand" || cssType === "lockedWater") {
     const lock = document.createElement("div");
@@ -1933,7 +1921,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 49;
+const CURRENT_BUILD = 50;
 
 async function checkForUpdate() {
   try {
