@@ -7,15 +7,15 @@ const $ = (id) => document.getElementById(id);
 const BUILDING_DEFS = {
   sawmill: { id: "sawmill", name: "Лісопилка", icon: "🌲", unlockLevel: 1, baseCost: { wood: 6 }, produce: { res: "wood", interval: 4000, cap: 60 }, desc: "Виробляє дерево з часом" },
   farm: { id: "farm", name: "Ферма", icon: "🌾", unlockLevel: 2, baseCost: { wood: 10 }, produce: { res: "food", interval: 5000, cap: 60 }, desc: "Вирощує культури з часом" },
-  mine: { id: "mine", name: "Копальня", icon: "⛏️", unlockLevel: 3, baseCost: { wood: 14, food: 7 }, produce: { res: "stone", interval: 6000, cap: 50 }, desc: "Виробляє камінь з часом" },
+  mine: { id: "mine", name: "Копальня", icon: "⛏️", unlockLevel: 3, baseCost: { wood: 20 }, produce: { res: "stone", interval: 6000, cap: 50 }, desc: "Виробляє камінь з часом" },
   house: { id: "house", name: "Хатина", icon: "🏠", unlockLevel: 4, baseCost: { wood: 18, stone: 10 }, produce: { res: "gold", interval: 10000, cap: 40 }, desc: "Приносить золото з часом" },
-  dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 22, stone: 14, food: 7 }, produce: { res: "gold", interval: 9000, cap: 30 }, special: "dock", desc: "Відкриває забудову на воді й приносить золото від портових зборів" },
+  dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 26, stone: 16 }, produce: { res: "gold", interval: 9000, cap: 30 }, special: "dock", desc: "Відкриває забудову на воді й приносить золото від портових зборів" },
   boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 18, gold: 10 }, produce: { res: "fish", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
-  cow: { id: "cow", name: "Корівник", icon: "🐄", unlockLevel: 5, baseCost: { wood: 20, food: 10 }, produce: { res: "meat", interval: 7000, cap: 40 }, desc: "Виробляє м'ясо з часом" },
-  pig: { id: "pig", name: "Свинарник", icon: "🐖", unlockLevel: 5, baseCost: { wood: 18, food: 8 }, produce: { res: "meat", interval: 6000, cap: 45 }, desc: "Виробляє м'ясо з часом" },
-  bull: { id: "bull", name: "Загін для биків", icon: "🐂", unlockLevel: 6, baseCost: { wood: 26, food: 14 }, produce: { res: "meat", interval: 8500, cap: 35 }, desc: "Виробляє м'ясо з часом" },
+  cow: { id: "cow", name: "Корівник", icon: "🐄", unlockLevel: 5, baseCost: { wood: 28 }, produce: { res: "meat", interval: 7000, cap: 40 }, desc: "Виробляє м'ясо з часом" },
+  pig: { id: "pig", name: "Свинарник", icon: "🐖", unlockLevel: 5, baseCost: { wood: 24 }, produce: { res: "meat", interval: 6000, cap: 45 }, desc: "Виробляє м'ясо з часом" },
+  bull: { id: "bull", name: "Загін для биків", icon: "🐂", unlockLevel: 6, baseCost: { wood: 36 }, produce: { res: "meat", interval: 8500, cap: 35 }, desc: "Виробляє м'ясо з часом" },
   townhouse: { id: "townhouse", name: "Будинок", icon: "🏘️", unlockLevel: 50, baseCost: { wood: 40, stone: 20 }, produce: { res: "gold", interval: 8000, cap: 60 }, desc: "Приносить дохід від оренди" },
-  restaurant: { id: "restaurant", name: "Ресторан", icon: "🍽️", unlockLevel: 50, baseCost: { wood: 60, food: 30, stone: 20 }, produce: { res: "gold", interval: 9000, cap: 100 }, desc: "Приносить дохід від гостей Outer Banks" },
+  restaurant: { id: "restaurant", name: "Ресторан", icon: "🍽️", unlockLevel: 50, baseCost: { wood: 75, stone: 35 }, produce: { res: "gold", interval: 9000, cap: 100 }, desc: "Приносить дохід від гостей Outer Banks" },
   townshop: { id: "townshop", name: "Крамниця", icon: "🏪", unlockLevel: 50, baseCost: { wood: 50, stone: 30 }, produce: { res: "gold", interval: 7000, cap: 80 }, desc: "Приносить дохід від туристів" },
 };
 const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "cow", "pig", "dock", "bull", "townhouse", "townshop", "restaurant"];
@@ -24,9 +24,9 @@ const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", fish: "🐟", meat
 
 const WORKER_DEFS = {
   wood: { res: "wood", name: "Лісоруб", icon: "🧝", unlockLevel: 2, cost: { wood: 40 } },
-  food: { res: "food", name: "Фермер", icon: "🧑‍🌾", unlockLevel: 3, cost: { wood: 30, food: 20 } },
+  food: { res: "food", name: "Фермер", icon: "🧑‍🌾", unlockLevel: 3, cost: { wood: 45 } },
   stone: { res: "stone", name: "Шахтар", icon: "👷", unlockLevel: 4, cost: { wood: 40, stone: 20 } },
-  meat: { res: "meat", name: "М'ясник", icon: "🔪", unlockLevel: 5, cost: { wood: 35, food: 15 } },
+  meat: { res: "meat", name: "М'ясник", icon: "🔪", unlockLevel: 5, cost: { wood: 45 } },
   fish: { res: "fish", name: "Рибалка", icon: "🎣", unlockLevel: 6, cost: { wood: 35, gold: 20 } },
   gold: { res: "gold", name: "Скарбник", icon: "🧞", unlockLevel: 6, cost: { wood: 50, gold: 30 } },
 };
@@ -213,9 +213,8 @@ function unlockCost(kind) {
   const waterCount = Object.values(state.tiles).filter((t) => t.type === "water").length;
   if (kind === "land") {
     const growth = Math.round(landCount * 1.5);
-    const cost = { wood: 6 + growth };
-    if (state.level >= 2) cost.food = 5 + growth; // ферма вже доступна
-    if (state.level >= 3) cost.stone = 5 + growth; // копальня вже доступна
+    const cost = { wood: 8 + growth };
+    if (state.level >= 3) cost.stone = 6 + growth; // копальня вже доступна
     return cost;
   }
   return { gold: 10 + waterCount * 3 };
@@ -1917,7 +1916,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 47;
+const CURRENT_BUILD = 48;
 
 async function checkForUpdate() {
   try {
