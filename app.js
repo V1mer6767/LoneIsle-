@@ -1304,13 +1304,30 @@ function tickPopulation() {
 
   const needed = Math.round(state.population * POP_FOOD_PER_PERSON);
   let remaining = needed;
-  const foodSources = ["food", "meat", "fish"].sort((a, b) => (state.resources[b] || 0) - (state.resources[a] || 0));
-  for (const res of foodSources) {
-    if (remaining <= 0) break;
+  const foodTypes = ["food", "meat", "fish"];
+
+  // First pass: take an even share from each type
+  const share = Math.ceil(needed / foodTypes.length);
+  foodTypes.forEach((res) => {
+    const want = Math.min(share, remaining);
     const have = state.resources[res] || 0;
-    const take = Math.min(have, remaining);
+    const take = Math.min(have, want);
     state.resources[res] -= take;
     remaining -= take;
+  });
+
+  // Second pass: if some types couldn't cover their share, top up from
+  // whatever is left (most abundant first) so a shortage in one type
+  // doesn't starve people while the others still have plenty
+  if (remaining > 0) {
+    const sorted = [...foodTypes].sort((a, b) => (state.resources[b] || 0) - (state.resources[a] || 0));
+    for (const res of sorted) {
+      if (remaining <= 0) break;
+      const have = state.resources[res] || 0;
+      const take = Math.min(have, remaining);
+      state.resources[res] -= take;
+      remaining -= take;
+    }
   }
 
   const fed = remaining <= 0;
@@ -1916,7 +1933,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 48;
+const CURRENT_BUILD = 49;
 
 async function checkForUpdate() {
   try {
