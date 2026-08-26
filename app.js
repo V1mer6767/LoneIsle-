@@ -47,6 +47,12 @@ const ISLAND_COST_MULT = 1.7;
 const OUTER_BANKS_LEVEL = 50;
 const OUTER_BANKS_CENTER = { c: 26, r: 16 };
 
+const POP_PER_HOUSE = 4;
+const POP_TICK_MS = 20000;
+const POP_FOOD_PER_PERSON = 0.4;
+const POP_GOLD_PER_PERSON = 0.3;
+const HOUSING_BUILDING_IDS = ["house", "townhouse"];
+
 let state = null;
 const tileEls = new Map();
 const badgeEls = new Map();
@@ -79,6 +85,8 @@ function defaultState() {
     islandsBought: 0,
     treasures: {},
     outerBanksUnlocked: false,
+    population: 0,
+    lastPopTick: Date.now(),
     lastSaveAt: now,
   };
 }
@@ -105,6 +113,8 @@ function loadGame() {
     }
     if (!parsed.treasures || typeof parsed.treasures !== "object") parsed.treasures = {};
     if (typeof parsed.outerBanksUnlocked !== "boolean") parsed.outerBanksUnlocked = false;
+    if (typeof parsed.population !== "number") parsed.population = 0;
+    if (typeof parsed.lastPopTick !== "number") parsed.lastPopTick = Date.now();
     Object.values(parsed.tiles).forEach((t) => { if (t.treasureFound) delete t.treasureFound; });
     delete parsed.secondIslandBought;
     const gapMs = Date.now() - (parsed.lastSaveAt || Date.now());
@@ -1277,6 +1287,93 @@ function renderMarketSheet() {
   });
 }
 
+/* ---------- population ---------- */
+function populationCap() {
+  let count = 0;
+  for (const tile of Object.values(state.tiles)) {
+    if (tile.building && HOUSING_BUILDING_IDS.includes(tile.building.id)) count++;
+  }
+  return count * POP_PER_HOUSE;
+}
+
+function tickPopulation() {
+  const cap = populationCap();
+  if (cap <= 0 && state.population <= 0) {
+    updatePopulationUI();
+    return;
+  }
+
+  const needed = Math.round(state.population * POP_FOOD_PER_PERSON);
+  let remaining = needed;
+  const foodSources = ["food", "meat", "fish"].sort((a, b) => (state.resources[b] || 0) - (state.resources[a] || 0));
+  for (const res of foodSources) {
+    if (remaining <= 0) break;
+    const have = state.resources[res] || 0;
+    const take = Math.min(have, remaining);
+    state.resources[res] -= take;
+    remaining -= take;
+  }
+
+  const fed = remaining <= 0;
+  state.popStruggling = !fed;
+
+  if (fed) {
+    if (state.population < cap) state.population += 1;
+    const bonus = Math.round(state.population * POP_GOLD_PER_PERSON);
+    if (bonus > 0) addResource("gold", bonus);
+  } else {
+    state.population = Math.max(0, state.population - 1);
+  }
+
+  state.lastPopTick = Date.now();
+  updateHeader();
+  updatePopulationUI();
+  saveGame();
+}
+
+function updatePopulationUI() {
+  const cap = populationCap();
+  const btn = $("btnPopulation");
+  if (!btn) return;
+  if (cap <= 0 && state.population <= 0) {
+    btn.style.display = "none";
+    return;
+  }
+  btn.style.display = "flex";
+  $("popCount").textContent = state.population;
+  $("popCap").textContent = cap;
+  btn.classList.toggle("popHungry", !!state.popStruggling);
+}
+
+function openPopSheet() {
+  markSheetOpened();
+  renderPopSheet();
+  $("popSheetBackdrop").style.display = "block";
+  $("popSheet").style.display = "block";
+}
+function closePopSheet() {
+  $("popSheetBackdrop").style.display = "none";
+  $("popSheet").style.display = "none";
+}
+
+function renderPopSheet() {
+  const cap = populationCap();
+  const needed = Math.round(state.population * POP_FOOD_PER_PERSON);
+  const bonus = Math.round(state.population * POP_GOLD_PER_PERSON);
+  const list = $("popList");
+  list.innerHTML = "";
+  const info = document.createElement("div");
+  info.className = "buildOptDesc";
+  info.style.padding = "0 2px 4px";
+  info.innerHTML = `
+    Населення: <b>${state.population} / ${cap}</b><br><br>
+    Кожні ${POP_TICK_MS / 1000} сек їм потрібно приблизно ${needed} їжі (культури, м'ясо або риба — що є більше).<br><br>
+    ${state.popStruggling ? "⚠️ Зараз їжі не вистачає — населення зменшується!" : `Нагодовані — ростуть і приносять +${bonus} 💰 щоцикл.`}<br><br>
+    Будуй ${HOUSING_BUILDING_IDS.map((id) => BUILDING_DEFS[id].name).join(" або ")}, щоб збільшити місткість (+${POP_PER_HOUSE} на кожну будівлю).
+  `;
+  list.appendChild(info);
+}
+
 /* ---------- police raids ---------- */
 const POLICE_CHECK_MS = 90000;
 const POLICE_RAID_CHANCE = 0.22;
@@ -1820,7 +1917,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 46;
+const CURRENT_BUILD = 47;
 
 async function checkForUpdate() {
   try {
@@ -1875,6 +1972,9 @@ function wire() {
   $("shopSheetBackdrop").addEventListener("click", closeShopSheet);
   $("menuMusic").addEventListener("click", () => { closeMoreSheet(); openMusicSheet(); });
   $("btnCloseMusicSheet").addEventListener("click", closeMusicSheet);
+  $("btnPopulation").addEventListener("click", openPopSheet);
+  $("btnClosePopSheet").addEventListener("click", closePopSheet);
+  $("popSheetBackdrop").addEventListener("click", closePopSheet);
   $("musicSheetBackdrop").addEventListener("click", closeMusicSheet);
   $("menuReset").addEventListener("click", () => {
     closeMoreSheet();
@@ -1943,6 +2043,8 @@ function init() {
 
   setInterval(tickWorkers, 1200);
   setInterval(checkPolice, POLICE_CHECK_MS);
+  setInterval(tickPopulation, POP_TICK_MS);
+  updatePopulationUI();
   setInterval(saveGame, 8000);
   setInterval(expireBoats, 15000);
 

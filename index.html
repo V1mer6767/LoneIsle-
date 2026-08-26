@@ -24,6 +24,10 @@
       <div class="xpTrack"><div class="xpFill" id="xpFill"></div></div>
     </div>
 
+    <button id="btnPopulation" class="popBadge" title="Населення" style="display:none;">
+      <span class="popIcon">👥</span><span id="popCount">0</span>/<span id="popCap">0</span>
+    </button>
+
     <div class="headerActions">
       <button id="btnLighthouse" class="iconbtn" title="Outer Banks" style="display:none;">
         <div class="lighthouseIcon"><span class="lhTop"></span><span class="lhTower"></span><span class="lhBase"></span></div>
@@ -156,6 +160,15 @@
 <!-- Welcome back overlay -->
 <!-- Black market sheet -->
 <!-- Music sheet -->
+<!-- Population sheet -->
+<div id="popSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="popSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">👥 Населення</div>
+  <div class="buildList" id="popList"></div>
+  <button id="btnClosePopSheet" class="btn ghost full">Закрити</button>
+</div>
+
 <div id="musicSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
 <div id="musicSheet" class="sheet" style="display:none;">
   <div class="sheetHandle"></div>
@@ -217,7 +230,7 @@
   </div>
 </div>
 
-<div class="buildStamp" id="buildStamp">build v46</div>
+<div class="buildStamp" id="buildStamp">build v47</div>
 
 <script src="app.js"></script>
 </body>

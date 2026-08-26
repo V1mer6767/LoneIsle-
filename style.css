@@ -63,6 +63,17 @@ input, textarea{
   min-width:52px;
 }
 .levelNum{font-family:var(--display); font-weight:800; font-size:16px; color:var(--coral); line-height:1;}
+
+.popBadge{
+  display:flex; align-items:center; gap:3px;
+  background:var(--panel); border:none; border-radius:16px; padding:8px 10px;
+  box-shadow:var(--shadow-glossy);
+  font-family:var(--display); font-weight:700; font-size:13px; color:var(--ink);
+  cursor:pointer; flex-shrink:0;
+}
+.popBadge.popHungry{color:var(--coral); animation:popPulse 1.4s ease-in-out infinite;}
+@keyframes popPulse{ 0%,100%{opacity:1;} 50%{opacity:.55;} }
+.popIcon{font-size:14px;}
 .levelNum::before{content:"LV "; font-size:9px; color:var(--ink-soft); font-family:var(--body); font-weight:700;}
 .xpTrack{width:44px; height:5px; border-radius:999px; background:var(--line); overflow:hidden;}
 .xpFill{height:100%; width:0%; background:linear-gradient(90deg, var(--gold), var(--coral)); transition:width .3s ease;}
