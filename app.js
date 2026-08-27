@@ -49,7 +49,7 @@ const OUTER_BANKS_CENTER = { c: 26, r: 16 };
 
 const POP_PER_HOUSE = 4;
 const POP_TICK_MS = 20000;
-const POP_FOOD_PER_PERSON = 0.4;
+const POP_FOOD_PER_PERSON = 1.2;
 const POP_GOLD_PER_PERSON = 0.3;
 const HOUSING_BUILDING_IDS = ["house", "townhouse"];
 const HAPPINESS_GROWTH_MIN = 30;
@@ -1940,7 +1940,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 52;
+const CURRENT_BUILD = 53;
 
 async function checkForUpdate() {
   try {
