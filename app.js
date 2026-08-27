@@ -212,9 +212,9 @@ function unlockCost(kind) {
   const landCount = Object.values(state.tiles).filter((t) => t.type === "land").length;
   const waterCount = Object.values(state.tiles).filter((t) => t.type === "water").length;
   if (kind === "land") {
-    const growth = Math.round(landCount * 1.5);
-    const cost = { wood: 8 + growth };
-    if (state.level >= 3) cost.stone = 6 + growth; // копальня вже доступна
+    const growth = Math.round(landCount * 2.3);
+    const cost = { wood: 16 + growth };
+    if (state.level >= 3) cost.stone = 12 + growth; // копальня вже доступна
     return cost;
   }
   return { gold: 10 + waterCount * 3 };
@@ -1921,7 +1921,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 50;
+const CURRENT_BUILD = 51;
 
 async function checkForUpdate() {
   try {
