@@ -52,6 +52,7 @@ const POP_TICK_MS = 20000;
 const POP_FOOD_PER_PERSON = 0.4;
 const POP_GOLD_PER_PERSON = 0.3;
 const HOUSING_BUILDING_IDS = ["house", "townhouse"];
+const HAPPINESS_GROWTH_MIN = 30;
 
 let state = null;
 const tileEls = new Map();
@@ -86,6 +87,7 @@ function defaultState() {
     treasures: {},
     outerBanksUnlocked: false,
     population: 0,
+    happiness: 70,
     lastPopTick: Date.now(),
     lastSaveAt: now,
   };
@@ -114,6 +116,7 @@ function loadGame() {
     if (!parsed.treasures || typeof parsed.treasures !== "object") parsed.treasures = {};
     if (typeof parsed.outerBanksUnlocked !== "boolean") parsed.outerBanksUnlocked = false;
     if (typeof parsed.population !== "number") parsed.population = 0;
+    if (typeof parsed.happiness !== "number") parsed.happiness = 70;
     if (typeof parsed.lastPopTick !== "number") parsed.lastPopTick = Date.now();
     Object.values(parsed.tiles).forEach((t) => { if (t.treasureFound) delete t.treasureFound; });
     delete parsed.secondIslandBought;
@@ -1322,8 +1325,14 @@ function tickPopulation() {
   state.popStruggling = !fed;
 
   if (fed) {
-    if (state.population < cap) state.population += 1;
-    const bonus = Math.round(state.population * POP_GOLD_PER_PERSON);
+    state.happiness = Math.min(100, state.happiness + 2);
+  } else {
+    state.happiness = Math.max(0, state.happiness - 8);
+  }
+
+  if (fed) {
+    if (state.happiness >= HAPPINESS_GROWTH_MIN && state.population < cap) state.population += 1;
+    const bonus = Math.round(state.population * POP_GOLD_PER_PERSON * (state.happiness / 100));
     if (bonus > 0) addResource("gold", bonus);
   } else {
     state.population = Math.max(0, state.population - 1);
@@ -1346,6 +1355,10 @@ function updatePopulationUI() {
   btn.style.display = "flex";
   $("popCount").textContent = state.population;
   $("popCap").textContent = cap;
+  const popIconEl = btn.querySelector(".popIcon");
+  if (popIconEl) {
+    popIconEl.textContent = state.happiness >= 70 ? "😊" : state.happiness >= 30 ? "😐" : "😟";
+  }
   btn.classList.toggle("popHungry", !!state.popStruggling);
 }
 
@@ -1363,16 +1376,22 @@ function closePopSheet() {
 function renderPopSheet() {
   const cap = populationCap();
   const needed = Math.round(state.population * POP_FOOD_PER_PERSON);
-  const bonus = Math.round(state.population * POP_GOLD_PER_PERSON);
+  const bonus = Math.round(state.population * POP_GOLD_PER_PERSON * (state.happiness / 100));
+  const happyLabel = state.happiness >= 70 ? "😊 Щасливі" : state.happiness >= HAPPINESS_GROWTH_MIN ? "😐 Нейтральні" : "😟 Нещасні";
   const list = $("popList");
   list.innerHTML = "";
   const info = document.createElement("div");
   info.className = "buildOptDesc";
   info.style.padding = "0 2px 4px";
   info.innerHTML = `
-    Населення: <b>${state.population} / ${cap}</b><br><br>
-    Кожні ${POP_TICK_MS / 1000} сек їм потрібно приблизно ${needed} їжі (культури, м'ясо або риба — що є більше).<br><br>
-    ${state.popStruggling ? "⚠️ Зараз їжі не вистачає — населення зменшується!" : `Нагодовані — ростуть і приносять +${bonus} 💰 щоцикл.`}<br><br>
+    Населення: <b>${state.population} / ${cap}</b><br>
+    Настрій: <b>${happyLabel} (${state.happiness}/100)</b><br><br>
+    Кожні ${POP_TICK_MS / 1000} сек їм потрібно приблизно ${needed} їжі (культури, м'ясо та риба — порівну).<br><br>
+    ${state.popStruggling
+      ? "⚠️ Зараз їжі не вистачає — населення зменшується, а настрій падає!"
+      : `Нагодовані — настрій росте, приносять +${bonus} 💰 щоцикл (менше щастя = менший дохід).`
+    }<br><br>
+    ${state.happiness < HAPPINESS_GROWTH_MIN ? "😟 Настрій занадто низький — населення не росте, навіть якщо ситі!<br><br>" : ""}
     Будуй ${HOUSING_BUILDING_IDS.map((id) => BUILDING_DEFS[id].name).join(" або ")}, щоб збільшити місткість (+${POP_PER_HOUSE} на кожну будівлю).
   `;
   list.appendChild(info);
@@ -1921,7 +1940,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 51;
+const CURRENT_BUILD = 52;
 
 async function checkForUpdate() {
   try {
