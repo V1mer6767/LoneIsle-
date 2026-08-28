@@ -101,7 +101,6 @@ const FAR_ISLAND_CENTERS_TO_UNDO = [
   { c: -12, r: -30 },
   { c: 34, r: 20 },
 ];
-const OLD_OUTER_BANKS_CENTER = { c: 26, r: 16 };
 
 function relocateTilesByNearestCenter(parsed, oldCenters, newCenters, maxIndex) {
   const deltas = newCenters.map((nc, i) => ({ dc: nc.c - oldCenters[i].c, dr: nc.r - oldCenters[i].r }));
@@ -125,17 +124,34 @@ function relocateTilesByNearestCenter(parsed, oldCenters, newCenters, maxIndex) 
 }
 
 function relocateOuterBanks(parsed) {
-  const newTiles = { ...parsed.tiles };
-  for (const [key, tile] of Object.entries(parsed.tiles)) {
+  // Find tiles that don't belong to the main island or any of islands 1-5
+  // (all within ~14 tiles of origin) — whatever's left far away must be
+  // the Outer Banks cluster, wherever earlier migrations may have left it.
+  const orphanKeys = [];
+  for (const key of Object.keys(parsed.tiles)) {
     const [c, r] = key.split(",").map(Number);
-    const distToOB = Math.hypot(c - OLD_OUTER_BANKS_CENTER.c, r - OLD_OUTER_BANKS_CENTER.r);
-    const distToMain = Math.hypot(c, r);
-    if (distToOB < distToMain && distToOB < 10) {
-      delete newTiles[key];
-      newTiles[coordKey(c + (OUTER_BANKS_CENTER.c - OLD_OUTER_BANKS_CENTER.c), r + (OUTER_BANKS_CENTER.r - OLD_OUTER_BANKS_CENTER.r))] = tile;
+    let nearestKnown = Infinity;
+    for (const ctr of ISLAND_CENTERS) {
+      const d = Math.hypot(c - ctr.c, r - ctr.r);
+      if (d < nearestKnown) nearestKnown = d;
     }
+    if (nearestKnown > 15) orphanKeys.push([key, c, r]);
+  }
+  if (!orphanKeys.length) return false;
+
+  const centroidC = orphanKeys.reduce((s, [, c]) => s + c, 0) / orphanKeys.length;
+  const centroidR = orphanKeys.reduce((s, [, , r]) => s + r, 0) / orphanKeys.length;
+  const deltaC = Math.round(OUTER_BANKS_CENTER.c - centroidC);
+  const deltaR = Math.round(OUTER_BANKS_CENTER.r - centroidR);
+  if (deltaC === 0 && deltaR === 0) return false;
+
+  const newTiles = { ...parsed.tiles };
+  for (const [key, c, r] of orphanKeys) {
+    delete newTiles[key];
+    newTiles[coordKey(c + deltaC, r + deltaR)] = parsed.tiles[key];
   }
   parsed.tiles = newTiles;
+  return true;
 }
 
 function loadGame() {
@@ -158,9 +174,9 @@ function loadGame() {
     if (typeof parsed.islandsBought !== "number") {
       parsed.islandsBought = parsed.secondIslandBought ? 1 : 0;
     }
-    if (parsed.outerBanksUnlocked && !parsed.outerBanksRelocatedV2) {
+    if (parsed.outerBanksUnlocked && !parsed.outerBanksRelocatedV3) {
       relocateOuterBanks(parsed);
-      parsed.outerBanksRelocatedV2 = true;
+      parsed.outerBanksRelocatedV3 = true;
     }
     if (parsed.islandsRelocatedV2 && !parsed.islandsRevertedV3) {
       relocateTilesByNearestCenter(parsed, FAR_ISLAND_CENTERS_TO_UNDO, ISLAND_CENTERS, parsed.islandsBought);
@@ -1993,7 +2009,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 55;
+const CURRENT_BUILD = 56;
 
 async function checkForUpdate() {
   try {
