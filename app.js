@@ -33,12 +33,12 @@ const WORKER_DEFS = {
 const WORKER_CYCLE_MS = 3500;
 
 const ISLAND_CENTERS = [
-  { c: 0, r: 0 },   // головний острів (завжди твій)
-  { c: 7, r: -3 },  // 2-й
-  { c: 3, r: 9 },   // 3-й
-  { c: -9, r: 4 },  // 4-й
-  { c: -4, r: -10 }, // 5-й
-  { c: 12, r: 7 },  // 6-й
+  { c: 0, r: 0 },     // головний острів (завжди твій)
+  { c: 22, r: -10 },  // 2-й
+  { c: 9, r: 28 },    // 3-й
+  { c: -28, r: 12 },  // 4-й
+  { c: -12, r: -30 }, // 5-й
+  { c: 34, r: 20 },   // 6-й
 ];
 const ISLAND_LEVEL_REQ = [0, 7, 9, 11, 13, 15];
 const ISLAND_BASE_COST = { wood: 200, stone: 80, gold: 60 };
@@ -93,6 +93,41 @@ function defaultState() {
   };
 }
 
+const OLD_ISLAND_CENTERS_FOR_MIGRATION = [
+  { c: 0, r: 0 },
+  { c: 7, r: -3 },
+  { c: 3, r: 9 },
+  { c: -9, r: 4 },
+  { c: -4, r: -10 },
+  { c: 12, r: 7 },
+];
+
+function relocateFarIslands(parsed) {
+  const deltas = ISLAND_CENTERS.map((nc, i) => {
+    const oc = OLD_ISLAND_CENTERS_FOR_MIGRATION[i];
+    return { dc: nc.c - oc.c, dr: nc.r - oc.r };
+  });
+  const newTiles = {};
+  for (const [key, tile] of Object.entries(parsed.tiles)) {
+    const [c, r] = key.split(",").map(Number);
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i <= parsed.islandsBought && i < OLD_ISLAND_CENTERS_FOR_MIGRATION.length; i++) {
+      const oc = OLD_ISLAND_CENTERS_FOR_MIGRATION[i];
+      const d = Math.hypot(c - oc.c, r - oc.r);
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    }
+    const delta = deltas[best];
+    const nc = c + delta.dc;
+    const nr = r + delta.dr;
+    newTiles[coordKey(nc, nr)] = tile;
+  }
+  parsed.tiles = newTiles;
+}
+
 function loadGame() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -112,6 +147,10 @@ function loadGame() {
     if (typeof parsed.resources.meat !== "number") parsed.resources.meat = (parsed.resources.animals || 0);
     if (typeof parsed.islandsBought !== "number") {
       parsed.islandsBought = parsed.secondIslandBought ? 1 : 0;
+    }
+    if (!parsed.islandsRelocatedV2 && parsed.islandsBought > 0) {
+      relocateFarIslands(parsed);
+      parsed.islandsRelocatedV2 = true;
     }
     if (!parsed.treasures || typeof parsed.treasures !== "object") parsed.treasures = {};
     if (typeof parsed.outerBanksUnlocked !== "boolean") parsed.outerBanksUnlocked = false;
@@ -1940,7 +1979,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 53;
+const CURRENT_BUILD = 54;
 
 async function checkForUpdate() {
   try {
