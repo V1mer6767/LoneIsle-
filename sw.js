@@ -1,4 +1,4 @@
-const CACHE = "loneisle-cache-v45";
+const CACHE = "loneisle-cache-v46";
 const ASSETS = ["./", "./index.html", "./style.css", "./app.js", "./manifest.json"];
 
 self.addEventListener("install", (event) => {
