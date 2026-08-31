@@ -123,34 +123,117 @@ function relocateTilesByNearestCenter(parsed, oldCenters, newCenters, maxIndex) 
   parsed.tiles = newTiles;
 }
 
+function findConnectedTileComponents(tileKeys) {
+  const keySet = new Set(tileKeys);
+  const visited = new Set();
+  const components = [];
+  for (const key of tileKeys) {
+    if (visited.has(key)) continue;
+    const comp = [];
+    const stack = [key];
+    visited.add(key);
+    while (stack.length) {
+      const k = stack.pop();
+      comp.push(k);
+      const [c, r] = k.split(",").map(Number);
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nk = coordKey(c + dc, r + dr);
+        if (keySet.has(nk) && !visited.has(nk)) {
+          visited.add(nk);
+          stack.push(nk);
+        }
+      }
+    }
+    components.push(comp);
+  }
+  return components;
+}
+
 function relocateOuterBanks(parsed) {
-  // Find tiles that don't belong to the main island or any of islands 1-5
-  // (all within ~14 tiles of origin) — whatever's left far away must be
-  // the Outer Banks cluster, wherever earlier migrations may have left it.
-  const orphanKeys = [];
-  for (const key of Object.keys(parsed.tiles)) {
-    const [c, r] = key.split(",").map(Number);
+  // Group tiles into connected blobs (adjacency-based) rather than using a
+  // raw distance threshold — a heavily-expanded main island can legitimately
+  // have tiles farther than any fixed radius, so distance alone isn't a
+  // reliable way to tell "this is a different island."
+  const components = findConnectedTileComponents(Object.keys(parsed.tiles));
+  if (components.length <= 1) return false;
+
+  const infos = components.map((comp) => {
+    let sumC = 0, sumR = 0;
+    let hasOrigin = false;
+    comp.forEach((k) => {
+      const [c, r] = k.split(",").map(Number);
+      sumC += c; sumR += r;
+      if (c === 0 && r === 0) hasOrigin = true;
+    });
+    const centroidC = sumC / comp.length;
+    const centroidR = sumR / comp.length;
     let nearestKnown = Infinity;
     for (const ctr of ISLAND_CENTERS) {
-      const d = Math.hypot(c - ctr.c, r - ctr.r);
+      const d = Math.hypot(centroidC - ctr.c, centroidR - ctr.r);
       if (d < nearestKnown) nearestKnown = d;
     }
-    if (nearestKnown > 15) orphanKeys.push([key, c, r]);
-  }
-  if (!orphanKeys.length) return false;
+    return { comp, centroidC, centroidR, nearestKnown, hasOrigin };
+  });
 
-  const centroidC = orphanKeys.reduce((s, [, c]) => s + c, 0) / orphanKeys.length;
-  const centroidR = orphanKeys.reduce((s, [, , r]) => s + r, 0) / orphanKeys.length;
-  const deltaC = Math.round(OUTER_BANKS_CENTER.c - centroidC);
-  const deltaR = Math.round(OUTER_BANKS_CENTER.r - centroidR);
+  const candidates = infos.filter((info) => !info.hasOrigin).sort((a, b) => b.nearestKnown - a.nearestKnown);
+  if (!candidates.length) return false;
+  const target = candidates[0];
+  if (target.nearestKnown < 20) return false;
+
+  const deltaC = Math.round(OUTER_BANKS_CENTER.c - target.centroidC);
+  const deltaR = Math.round(OUTER_BANKS_CENTER.r - target.centroidR);
   if (deltaC === 0 && deltaR === 0) return false;
 
   const newTiles = { ...parsed.tiles };
-  for (const [key, c, r] of orphanKeys) {
+  target.comp.forEach((key) => {
+    const [c, r] = key.split(",").map(Number);
     delete newTiles[key];
     newTiles[coordKey(c + deltaC, r + deltaR)] = parsed.tiles[key];
-  }
+  });
   parsed.tiles = newTiles;
+  return true;
+}
+
+function recoverMisplacedMainIslandBuildings(parsed) {
+  // The earlier (distance-threshold) version of relocateOuterBanks could
+  // wrongly sweep up far-flung main-island tiles along with the real Outer
+  // Banks cluster. Anything with a main-island-style building sitting near
+  // the current Outer Banks center almost certainly doesn't belong there —
+  // reattach it to the actual main island's frontier instead of leaving it
+  // stranded (and mixed in with genuine Outer Banks buildings).
+  const mainStyleBuildings = ["sawmill", "farm", "mine", "house", "dock", "cow", "pig", "bull"];
+  const misplaced = [];
+  for (const [key, tile] of Object.entries(parsed.tiles)) {
+    const [c, r] = key.split(",").map(Number);
+    const distToOB = Math.hypot(c - OUTER_BANKS_CENTER.c, r - OUTER_BANKS_CENTER.r);
+    if (distToOB < 15 && tile.building && mainStyleBuildings.includes(tile.building.id)) {
+      misplaced.push(key);
+    }
+  }
+  if (!misplaced.length) return false;
+
+  const takenSlots = new Set();
+  for (const oldKey of misplaced) {
+    const building = parsed.tiles[oldKey].building;
+    delete parsed.tiles[oldKey];
+    let slot = null;
+    for (const key of Object.keys(parsed.tiles)) {
+      const [c, r] = key.split(",").map(Number);
+      if (Math.hypot(c, r) > 20) continue;
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nc = c + dc, nr = r + dr;
+        const nk = coordKey(nc, nr);
+        if (!parsed.tiles[nk] && !takenSlots.has(nk)) {
+          slot = nk;
+          break;
+        }
+      }
+      if (slot) break;
+    }
+    if (!slot) slot = coordKey(2 + takenSlots.size, 2);
+    takenSlots.add(slot);
+    parsed.tiles[slot] = { type: "land", building };
+  }
   return true;
 }
 
@@ -174,9 +257,13 @@ function loadGame() {
     if (typeof parsed.islandsBought !== "number") {
       parsed.islandsBought = parsed.secondIslandBought ? 1 : 0;
     }
-    if (parsed.outerBanksUnlocked && !parsed.outerBanksRelocatedV3) {
+    if (parsed.outerBanksUnlocked && !parsed.mainIslandRecoveredV1) {
+      recoverMisplacedMainIslandBuildings(parsed);
+      parsed.mainIslandRecoveredV1 = true;
+    }
+    if (parsed.outerBanksUnlocked && !parsed.outerBanksRelocatedV4) {
       relocateOuterBanks(parsed);
-      parsed.outerBanksRelocatedV3 = true;
+      parsed.outerBanksRelocatedV4 = true;
     }
     if (parsed.islandsRelocatedV2 && !parsed.islandsRevertedV3) {
       relocateTilesByNearestCenter(parsed, FAR_ISLAND_CENTERS_TO_UNDO, ISLAND_CENTERS, parsed.islandsBought);
@@ -2009,7 +2096,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 56;
+const CURRENT_BUILD = 57;
 
 async function checkForUpdate() {
   try {
