@@ -2096,7 +2096,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 57;
+const CURRENT_BUILD = 58;
 
 async function checkForUpdate() {
   try {
@@ -2140,6 +2140,7 @@ function wire() {
   });
   $("btnCloseMoreSheet").addEventListener("click", closeMoreSheet);
   $("moreSheetBackdrop").addEventListener("click", closeMoreSheet);
+  $("menuHome").addEventListener("click", () => { closeMoreSheet(); flyTo(0, 0); });
   $("menuNewIsland").addEventListener("click", () => { closeMoreSheet(); openIslandSheet(); });
   $("menuWorkers").addEventListener("click", () => { closeMoreSheet(); openWorkerSheet(); });
   $("menuFishing").addEventListener("click", () => { closeMoreSheet(); openBoatSheet(); });
