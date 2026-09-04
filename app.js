@@ -1447,8 +1447,26 @@ function renderMarketSheet() {
 function totalLandTiles() {
   return Object.values(state.tiles).filter((t) => t.type === "land").length;
 }
+function mainIslandLandTiles() {
+  const components = findConnectedTileComponents(Object.keys(state.tiles));
+  const mainComp = components.find((comp) => comp.includes("0,0"));
+  if (!mainComp) return 0;
+  return mainComp.filter((key) => state.tiles[key].type === "land").length;
+}
+function mainIslandBuildingCount() {
+  const components = findConnectedTileComponents(Object.keys(state.tiles));
+  const mainComp = components.find((comp) => comp.includes("0,0"));
+  if (!mainComp) return 0;
+  return mainComp.filter((key) => state.tiles[key].building).length;
+}
 function currentBuildingCount(...ids) {
   return Object.values(state.tiles).filter((t) => t.building && ids.includes(t.building.id)).length;
+}
+function mainIslandBuildingCountOfType(...ids) {
+  const components = findConnectedTileComponents(Object.keys(state.tiles));
+  const mainComp = components.find((comp) => comp.includes("0,0"));
+  if (!mainComp) return 0;
+  return mainComp.filter((key) => state.tiles[key].building && ids.includes(state.tiles[key].building.id)).length;
 }
 
 const RANKS = [
@@ -1457,8 +1475,8 @@ const RANKS = [
     name: "Початківець-забудовник",
     icon: "🏡",
     goals: [
-      { label: "Ділянок землі", target: 30, check: () => totalLandTiles() },
-      { label: "Хатин/будинків", target: 2, check: () => currentBuildingCount("house", "townhouse") },
+      { label: "Ділянок на головному острові", target: 30, check: () => mainIslandLandTiles() },
+      { label: "Хатин/будинків", target: 2, check: () => mainIslandBuildingCountOfType("house", "townhouse") },
       { label: "Золота зароблено за все життя", target: 300, check: () => (state.lifetime && state.lifetime.gold) || 0 },
     ],
     reward: 150,
@@ -1467,7 +1485,7 @@ const RANKS = [
     name: "Хазяїн",
     icon: "🌾",
     goals: [
-      { label: "Ділянок землі", target: 70, check: () => totalLandTiles() },
+      { label: "Ділянок на головному острові", target: 70, check: () => mainIslandLandTiles() },
       { label: "Риби спіймано за все життя", target: 150, check: () => (state.lifetime && state.lifetime.fish) || 0 },
       { label: "М'яса здобуто за все життя", target: 150, check: () => (state.lifetime && state.lifetime.meat) || 0 },
     ],
@@ -1477,7 +1495,7 @@ const RANKS = [
     name: "Досвідчений землевласник",
     icon: "🏘️",
     goals: [
-      { label: "Ділянок землі", target: 130, check: () => totalLandTiles() },
+      { label: "Ділянок на головному острові", target: 130, check: () => mainIslandLandTiles() },
       { label: "Населення", target: 8, check: () => state.population },
       { label: "Золота зароблено за все життя", target: 3000, check: () => (state.lifetime && state.lifetime.gold) || 0 },
     ],
@@ -1487,7 +1505,7 @@ const RANKS = [
     name: "Магнат нерухомості",
     icon: "🏰",
     goals: [
-      { label: "Ділянок землі", target: 200, check: () => totalLandTiles() },
+      { label: "Ділянок на головному острові", target: 200, check: () => mainIslandLandTiles() },
       { label: "Островів у власності", target: 2, check: () => state.islandsBought + 1 },
       { label: "Дерева здобуто за все життя", target: 6000, check: () => (state.lifetime && state.lifetime.wood) || 0 },
     ],
@@ -1497,7 +1515,7 @@ const RANKS = [
     name: "Дуже вмілий землевласник",
     icon: "👑",
     goals: [
-      { label: "Ділянок землі", target: 300, check: () => totalLandTiles() },
+      { label: "Ділянок на головному острові", target: 300, check: () => mainIslandLandTiles() },
       { label: "Риби й м'яса разом за все життя", target: 3000, check: () => ((state.lifetime && state.lifetime.fish) || 0) + ((state.lifetime && state.lifetime.meat) || 0) },
       { label: "Золота зароблено за все життя", target: 15000, check: () => (state.lifetime && state.lifetime.gold) || 0 },
     ],
@@ -1511,19 +1529,52 @@ function nextRankGoalsMet() {
   return next.goals.every((g) => g.check() >= g.target);
 }
 
+function calculateSellValue() {
+  const tiles = mainIslandLandTiles();
+  const buildings = mainIslandBuildingCount();
+  return Math.round(tiles * 8 + buildings * 45);
+}
+
+function resetMainIsland() {
+  const components = findConnectedTileComponents(Object.keys(state.tiles));
+  const mainComp = components.find((comp) => comp.includes("0,0"));
+  if (mainComp) {
+    mainComp.forEach((key) => { delete state.tiles[key]; });
+  }
+  for (let c = -1; c <= 1; c++) {
+    for (let r = -1; r <= 1; r++) {
+      state.tiles[coordKey(c, r)] = { type: "land", building: null };
+    }
+  }
+  state.tiles[coordKey(0, 0)].building = { id: "sawmill", lastCollect: Date.now() };
+  const newCap = populationCap();
+  state.population = Math.min(state.population, newCap);
+  repositionBoatsIfTooClose();
+}
+
 function claimNextRank() {
   const next = RANKS[state.rank + 1];
   if (!next) return;
   if (!nextRankGoalsMet()) return;
+
+  const sellValue = calculateSellValue();
+  const totalReward = next.reward + sellValue;
+  const confirmMsg = `Продати головний острів за ${formatNum(totalReward)} 💰 і отримати звання "${next.name}"?\n\nОстрів скинеться до самого початку (3×3 з лісопилкою) — доведеться відбудовувати заново для наступного звання. Це незворотно!`;
+  if (!confirm(confirmMsg)) return;
+
   state.rank += 1;
-  addResource("gold", next.reward);
+  resetMainIsland();
+  addResource("gold", totalReward);
   saveGame();
+  renderWorld();
   updateHeader();
+  updatePopulationUI();
+
   $("rankUpIcon").textContent = next.icon;
   $("rankUpName").textContent = next.name;
-  $("rankUpReward").textContent = next.reward > 0 ? `Продано надлишок землі — отримано +${next.reward} 💰` : "";
+  $("rankUpReward").textContent = `Острів продано за ${formatNum(totalReward)} 💰. Головний острів скинуто — час відбудувати щось ще більше!`;
   $("rankUpOverlay").style.display = "flex";
-  renderRankSheet();
+  closeRankSheet();
 }
 
 function openRankSheet() {
@@ -1550,7 +1601,7 @@ function renderRankSheet() {
     return;
   }
 
-  $("rankSheetDesc").textContent = `Виконай усі цілі, щоб отримати звання "${next.name}":`;
+  $("rankSheetDesc").textContent = `Виконай усі цілі, щоб продати головний острів і отримати звання "${next.name}" (острів скинеться і почнеться заново):`;
   next.goals.forEach((g) => {
     const have = g.check();
     const done = have >= g.target;
@@ -1570,9 +1621,12 @@ function renderRankSheet() {
   $("btnClaimRank").style.display = "block";
   $("btnClaimRank").disabled = !allDone;
   $("btnClaimRank").style.opacity = allDone ? "1" : ".5";
-  $("btnClaimRank").textContent = allDone
-    ? `Отримати звання "${next.icon} ${next.name}" (+${next.reward} 💰)`
-    : "Виконай усі цілі вище";
+  if (allDone) {
+    const totalReward = next.reward + calculateSellValue();
+    $("btnClaimRank").textContent = `Продати острів за ${formatNum(totalReward)} 💰 і стати "${next.name}"`;
+  } else {
+    $("btnClaimRank").textContent = "Виконай усі цілі вище";
+  }
 }
 
 /* ---------- population ---------- */
@@ -2238,7 +2292,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 59;
+const CURRENT_BUILD = 60;
 
 async function checkForUpdate() {
   try {
