@@ -88,6 +88,8 @@ function defaultState() {
     outerBanksUnlocked: false,
     population: 0,
     happiness: 70,
+    rank: 0,
+    lifetime: { wood: 0, stone: 0, food: 0, fish: 0, meat: 0, gold: 0 },
     lastPopTick: Date.now(),
     lastSaveAt: now,
   };
@@ -273,6 +275,10 @@ function loadGame() {
     if (typeof parsed.outerBanksUnlocked !== "boolean") parsed.outerBanksUnlocked = false;
     if (typeof parsed.population !== "number") parsed.population = 0;
     if (typeof parsed.happiness !== "number") parsed.happiness = 70;
+    if (typeof parsed.rank !== "number") parsed.rank = 0;
+    if (!parsed.lifetime || typeof parsed.lifetime !== "object") {
+      parsed.lifetime = { wood: 0, stone: 0, food: 0, fish: 0, meat: 0, gold: 0 };
+    }
     if (typeof parsed.lastPopTick !== "number") parsed.lastPopTick = Date.now();
     Object.values(parsed.tiles).forEach((t) => { if (t.treasureFound) delete t.treasureFound; });
     delete parsed.secondIslandBought;
@@ -344,6 +350,10 @@ function spend(cost) {
 }
 function addResource(res, amt) {
   state.resources[res] = (state.resources[res] || 0) + amt;
+  if (amt > 0) {
+    if (!state.lifetime) state.lifetime = {};
+    state.lifetime[res] = (state.lifetime[res] || 0) + amt;
+  }
 }
 function formatNum(n) {
   n = Math.floor(n);
@@ -1433,6 +1443,138 @@ function renderMarketSheet() {
   });
 }
 
+/* ---------- ranks & titles ---------- */
+function totalLandTiles() {
+  return Object.values(state.tiles).filter((t) => t.type === "land").length;
+}
+function currentBuildingCount(...ids) {
+  return Object.values(state.tiles).filter((t) => t.building && ids.includes(t.building.id)).length;
+}
+
+const RANKS = [
+  { name: "Новачок", icon: "🌱", goals: [], reward: 0 },
+  {
+    name: "Початківець-забудовник",
+    icon: "🏡",
+    goals: [
+      { label: "Ділянок землі", target: 30, check: () => totalLandTiles() },
+      { label: "Хатин/будинків", target: 2, check: () => currentBuildingCount("house", "townhouse") },
+      { label: "Золота зароблено за все життя", target: 300, check: () => (state.lifetime && state.lifetime.gold) || 0 },
+    ],
+    reward: 150,
+  },
+  {
+    name: "Хазяїн",
+    icon: "🌾",
+    goals: [
+      { label: "Ділянок землі", target: 70, check: () => totalLandTiles() },
+      { label: "Риби спіймано за все життя", target: 150, check: () => (state.lifetime && state.lifetime.fish) || 0 },
+      { label: "М'яса здобуто за все життя", target: 150, check: () => (state.lifetime && state.lifetime.meat) || 0 },
+    ],
+    reward: 400,
+  },
+  {
+    name: "Досвідчений землевласник",
+    icon: "🏘️",
+    goals: [
+      { label: "Ділянок землі", target: 130, check: () => totalLandTiles() },
+      { label: "Населення", target: 8, check: () => state.population },
+      { label: "Золота зароблено за все життя", target: 3000, check: () => (state.lifetime && state.lifetime.gold) || 0 },
+    ],
+    reward: 900,
+  },
+  {
+    name: "Магнат нерухомості",
+    icon: "🏰",
+    goals: [
+      { label: "Ділянок землі", target: 200, check: () => totalLandTiles() },
+      { label: "Островів у власності", target: 2, check: () => state.islandsBought + 1 },
+      { label: "Дерева здобуто за все життя", target: 6000, check: () => (state.lifetime && state.lifetime.wood) || 0 },
+    ],
+    reward: 1800,
+  },
+  {
+    name: "Дуже вмілий землевласник",
+    icon: "👑",
+    goals: [
+      { label: "Ділянок землі", target: 300, check: () => totalLandTiles() },
+      { label: "Риби й м'яса разом за все життя", target: 3000, check: () => ((state.lifetime && state.lifetime.fish) || 0) + ((state.lifetime && state.lifetime.meat) || 0) },
+      { label: "Золота зароблено за все життя", target: 15000, check: () => (state.lifetime && state.lifetime.gold) || 0 },
+    ],
+    reward: 5000,
+  },
+];
+
+function nextRankGoalsMet() {
+  const next = RANKS[state.rank + 1];
+  if (!next) return false;
+  return next.goals.every((g) => g.check() >= g.target);
+}
+
+function claimNextRank() {
+  const next = RANKS[state.rank + 1];
+  if (!next) return;
+  if (!nextRankGoalsMet()) return;
+  state.rank += 1;
+  addResource("gold", next.reward);
+  saveGame();
+  updateHeader();
+  $("rankUpIcon").textContent = next.icon;
+  $("rankUpName").textContent = next.name;
+  $("rankUpReward").textContent = next.reward > 0 ? `Продано надлишок землі — отримано +${next.reward} 💰` : "";
+  $("rankUpOverlay").style.display = "flex";
+  renderRankSheet();
+}
+
+function openRankSheet() {
+  markSheetOpened();
+  renderRankSheet();
+  $("rankSheetBackdrop").style.display = "block";
+  $("rankSheet").style.display = "block";
+}
+function closeRankSheet() {
+  $("rankSheetBackdrop").style.display = "none";
+  $("rankSheet").style.display = "none";
+}
+
+function renderRankSheet() {
+  const current = RANKS[state.rank];
+  const next = RANKS[state.rank + 1];
+  $("rankSheetTitle").textContent = `${current.icon} ${current.name}`;
+  const list = $("rankList");
+  list.innerHTML = "";
+
+  if (!next) {
+    $("rankSheetDesc").textContent = "Ти досяг найвищого звання! Далі — просто розвиток заради задоволення.";
+    $("btnClaimRank").style.display = "none";
+    return;
+  }
+
+  $("rankSheetDesc").textContent = `Виконай усі цілі, щоб отримати звання "${next.name}":`;
+  next.goals.forEach((g) => {
+    const have = g.check();
+    const done = have >= g.target;
+    const row = document.createElement("div");
+    row.className = "buildOption" + (done ? " musicActive" : "");
+    row.innerHTML = `
+      <div class="buildOptIcon">${done ? "✅" : "⬜"}</div>
+      <div class="buildOptInfo">
+        <div class="buildOptName">${g.label}</div>
+        <div class="buildOptDesc">${formatNum(have)} / ${formatNum(g.target)}</div>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+
+  const allDone = nextRankGoalsMet();
+  $("btnClaimRank").style.display = "block";
+  $("btnClaimRank").disabled = !allDone;
+  $("btnClaimRank").style.opacity = allDone ? "1" : ".5";
+  $("btnClaimRank").textContent = allDone
+    ? `Отримати звання "${next.icon} ${next.name}" (+${next.reward} 💰)`
+    : "Виконай усі цілі вище";
+}
+
 /* ---------- population ---------- */
 function populationCap() {
   let count = 0;
@@ -2096,7 +2238,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 58;
+const CURRENT_BUILD = 59;
 
 async function checkForUpdate() {
   try {
@@ -2145,6 +2287,11 @@ function wire() {
   $("menuWorkers").addEventListener("click", () => { closeMoreSheet(); openWorkerSheet(); });
   $("menuFishing").addEventListener("click", () => { closeMoreSheet(); openBoatSheet(); });
   $("menuBlackMarket").addEventListener("click", () => { closeMoreSheet(); openMarketSheet(); });
+  $("menuRank").addEventListener("click", () => { closeMoreSheet(); openRankSheet(); });
+  $("btnCloseRankSheet").addEventListener("click", closeRankSheet);
+  $("rankSheetBackdrop").addEventListener("click", closeRankSheet);
+  $("btnClaimRank").addEventListener("click", claimNextRank);
+  $("btnRankUpClose").addEventListener("click", () => { $("rankUpOverlay").style.display = "none"; });
   $("btnCloseMarketSheet").addEventListener("click", closeMarketSheet);
   $("marketSheetBackdrop").addEventListener("click", closeMarketSheet);
   $("btnShop").addEventListener("click", openShopSheet);

@@ -98,6 +98,10 @@
       <div class="buildOptIcon">🏴‍☠️</div>
       <div class="buildOptInfo"><div class="buildOptName">Чорний ринок</div></div>
     </div>
+    <div class="buildOption" id="menuRank">
+      <div class="buildOptIcon">🏆</div>
+      <div class="buildOptInfo"><div class="buildOptName">Звання</div></div>
+    </div>
     <div class="buildOption" id="menuMusic">
       <div class="buildOptIcon">🎵</div>
       <div class="buildOptInfo"><div class="buildOptName">Музика</div></div>
@@ -181,6 +185,28 @@
   <button id="btnCloseMusicSheet" class="btn ghost full">Закрити</button>
 </div>
 
+<!-- Rank sheet -->
+<div id="rankSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="rankSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle" id="rankSheetTitle">🏆 Звання</div>
+  <div class="buildOptDesc" style="padding:0 2px 12px;" id="rankSheetDesc"></div>
+  <div class="buildList" id="rankList"></div>
+  <button id="btnClaimRank" class="btn primary full" style="margin-bottom:10px; display:none;">Продати надлишок і отримати звання</button>
+  <button id="btnCloseRankSheet" class="btn ghost full">Закрити</button>
+</div>
+
+<!-- Rank up overlay -->
+<div id="rankUpOverlay" class="levelUpOverlay" style="display:none;">
+  <div class="levelUpCard">
+    <div class="treasureIcon" id="rankUpIcon">🏆</div>
+    <div class="levelUpTitle">Нове звання!</div>
+    <div class="levelUpLv" id="rankUpName" style="font-size:24px;"></div>
+    <div class="welcomeText" id="rankUpReward"></div>
+    <button id="btnRankUpClose" class="btn primary full">Гордість переповнює!</button>
+  </div>
+</div>
+
 <div id="marketSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
 <div id="marketSheet" class="sheet" style="display:none;">
   <div class="sheetHandle"></div>
@@ -234,7 +260,7 @@
   </div>
 </div>
 
-<div class="buildStamp" id="buildStamp">build v58</div>
+<div class="buildStamp" id="buildStamp">build v59</div>
 
 <script src="app.js"></script>
 </body>
