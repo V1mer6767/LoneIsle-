@@ -60,6 +60,7 @@ const badgeEls = new Map();
 const dockShedEls = new Map();
 
 let pan = { x: 0, y: 0 };
+let lastPointerTapAt = 0;
 let rotation = 0;
 let sheetContext = null; // {kind:'unlock', c, r, unlockKind} | {kind:'build', c, r}
 
@@ -2012,7 +2013,6 @@ function wirePanning() {
   let down = false, moved = false, startX = 0, startY = 0, origX = 0, origY = 0;
 
   viewport.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
     viewport.setPointerCapture(e.pointerId);
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -2060,7 +2060,6 @@ function wirePanning() {
   });
 
   const end = (e) => {
-    e.preventDefault();
     activePointers.delete(e.pointerId);
     if (activePointers.size === 1) {
       // A second touch point (stray palm/finger contact — much more
@@ -2083,6 +2082,7 @@ function wirePanning() {
     if (!down) { down = false; return; }
     down = false;
     if (!moved) {
+      lastPointerTapAt = Date.now();
       const boatId = pickBoatAt(e.clientX, e.clientY);
       if (boatId) { collectBoat(boatId); return; }
       const tile = pickTileAt(e.clientX, e.clientY);
@@ -2091,6 +2091,14 @@ function wirePanning() {
   };
   viewport.addEventListener("pointerup", end);
   viewport.addEventListener("pointercancel", end);
+
+  viewport.addEventListener("click", (e) => {
+    if (Date.now() - lastPointerTapAt < 400) return; // already handled via pointer events
+    const boatId = pickBoatAt(e.clientX, e.clientY);
+    if (boatId) { collectBoat(boatId); return; }
+    const tile = pickTileAt(e.clientX, e.clientY);
+    if (tile) onTileTap(tile.c, tile.r);
+  });
 
   viewport.addEventListener("wheel", (e) => {
     e.preventDefault();
@@ -2305,7 +2313,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 61;
+const CURRENT_BUILD = 62;
 
 async function checkForUpdate() {
   try {
