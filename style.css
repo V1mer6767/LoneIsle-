@@ -51,6 +51,7 @@ input, textarea{
   position:relative; z-index:5;
   display:flex; flex-direction:column; gap:8px;
   padding:12px 10px;
+  max-width:480px; margin:0 auto;
 }
 .topbarRow{
   display:flex; align-items:center; justify-content:space-between; gap:8px;
@@ -309,6 +310,7 @@ input, textarea{
 .sheetBackdrop{position:fixed; inset:0; background:rgba(15,35,55,.4); z-index:48;}
 .sheet{
   position:fixed; left:0; right:0; bottom:0; z-index:49;
+  max-width:480px; margin:0 auto;
   background:var(--panel-warm);
   border-radius:24px 24px 0 0;
   padding:10px 16px 22px;

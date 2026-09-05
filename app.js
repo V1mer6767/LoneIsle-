@@ -2062,8 +2062,21 @@ function wirePanning() {
   const end = (e) => {
     e.preventDefault();
     activePointers.delete(e.pointerId);
-    if (activePointers.size >= 1) {
-      // still at least one finger down: restart single-drag reference from here
+    if (activePointers.size === 1) {
+      // A second touch point (stray palm/finger contact — much more
+      // common on larger tablet screens) just lifted while one finger
+      // is still down. Resume single-finger tap tracking from here
+      // instead of abandoning tap detection for the remaining finger.
+      const [remaining] = activePointers.values();
+      down = true;
+      moved = false;
+      startX = remaining.x;
+      startY = remaining.y;
+      origX = pan.x;
+      origY = pan.y;
+      return;
+    }
+    if (activePointers.size >= 2) {
       down = false;
       return;
     }
@@ -2292,7 +2305,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 60;
+const CURRENT_BUILD = 61;
 
 async function checkForUpdate() {
   try {
