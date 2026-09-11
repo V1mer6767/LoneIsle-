@@ -238,6 +238,44 @@ input, textarea{
   background:linear-gradient(135deg, rgba(127,206,107,.14), rgba(127,206,107,.06)) !important;
 }
 
+.wheelWrap{
+  position:relative; width:260px; height:260px; margin:6px auto 4px;
+}
+.wheelPointer{
+  position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+  font-size:28px; color:var(--coral); z-index:2;
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.3));
+}
+.wheel{
+  width:260px; height:260px; border-radius:50%;
+  position:relative;
+  border:6px solid #fff;
+  box-shadow:var(--shadow), inset 0 0 0 2px rgba(0,0,0,.08);
+  background:conic-gradient(
+    var(--grass) 0deg 45deg, var(--sand) 45deg 90deg,
+    var(--water) 90deg 135deg, var(--gold) 135deg 180deg,
+    var(--grass-dark) 180deg 225deg, var(--sand-dark) 225deg 270deg,
+    var(--coral) 270deg 315deg, var(--water-dark) 315deg 360deg
+  );
+  transition:transform 3.5s cubic-bezier(.17,.67,.1,1);
+}
+.wheelLabel{
+  position:absolute; top:50%; left:50%;
+  width:60px; margin-left:-30px; margin-top:-38px;
+  text-align:center; font-family:var(--display); font-weight:700; font-size:13px;
+  color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.45);
+  line-height:1.25;
+  pointer-events:none;
+}
+.wheelLabel[data-i="0"]{ transform:rotate(22.5deg) translateY(-88px) rotate(-22.5deg); }
+.wheelLabel[data-i="1"]{ transform:rotate(67.5deg) translateY(-88px) rotate(-67.5deg); }
+.wheelLabel[data-i="2"]{ transform:rotate(112.5deg) translateY(-88px) rotate(-112.5deg); }
+.wheelLabel[data-i="3"]{ transform:rotate(157.5deg) translateY(-88px) rotate(-157.5deg); }
+.wheelLabel[data-i="4"]{ transform:rotate(202.5deg) translateY(-88px) rotate(-202.5deg); }
+.wheelLabel[data-i="5"]{ transform:rotate(247.5deg) translateY(-88px) rotate(-247.5deg); }
+.wheelLabel[data-i="6"]{ transform:rotate(292.5deg) translateY(-88px) rotate(-292.5deg); }
+.wheelLabel[data-i="7"]{ transform:rotate(337.5deg) translateY(-88px) rotate(-337.5deg); }
+
 .buildingIcon{
   position:absolute; left:50%; top:38%; transform:translate(-50%,-60%);
   font-size:calc(var(--th)*0.62); pointer-events:none;

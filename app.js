@@ -90,6 +90,7 @@ function defaultState() {
     population: 0,
     happiness: 70,
     rank: 0,
+    lastWheelSpinDate: "",
     lifetime: { wood: 0, stone: 0, food: 0, fish: 0, meat: 0, gold: 0 },
     lastPopTick: Date.now(),
     lastSaveAt: now,
@@ -277,6 +278,7 @@ function loadGame() {
     if (typeof parsed.population !== "number") parsed.population = 0;
     if (typeof parsed.happiness !== "number") parsed.happiness = 70;
     if (typeof parsed.rank !== "number") parsed.rank = 0;
+    if (typeof parsed.lastWheelSpinDate !== "string") parsed.lastWheelSpinDate = "";
     if (!parsed.lifetime || typeof parsed.lifetime !== "object") {
       parsed.lifetime = { wood: 0, stone: 0, food: 0, fish: 0, meat: 0, gold: 0 };
     }
@@ -407,9 +409,37 @@ function depleteAnimalIfNeeded() {
 function readyAmount(building) {
   const def = BUILDING_DEFS[building.id];
   if (!def.produce) return 0;
+  const level = building.level || 1;
+  const mult = 1 + (level - 1) * 0.4;
   const elapsed = Date.now() - building.lastCollect;
-  const ready = Math.floor(elapsed / def.produce.interval);
-  return Math.min(ready, def.produce.cap);
+  const rawReady = Math.floor(elapsed / def.produce.interval);
+  const cap = Math.round(def.produce.cap * mult);
+  return Math.min(Math.round(rawReady * mult), cap);
+}
+
+const BUILDING_MAX_LEVEL = 5;
+function upgradeCost(buildingId, currentLevel) {
+  const base = BUILDING_DEFS[buildingId].baseCost;
+  const mult = 1 + currentLevel * 0.9;
+  const cost = {};
+  Object.entries(base).forEach(([res, amt]) => { cost[res] = Math.max(1, Math.round(amt * mult)); });
+  return cost;
+}
+
+function upgradeBuilding(c, r) {
+  const tile = state.tiles[coordKey(c, r)];
+  if (!tile || !tile.building) return;
+  const level = tile.building.level || 1;
+  if (level >= BUILDING_MAX_LEVEL) return;
+  const cost = upgradeCost(tile.building.id, level);
+  if (!canAfford(cost)) return;
+  spend(cost);
+  tile.building.level = level + 1;
+  gainXP(12);
+  renderWorld();
+  updateHeader();
+  saveGame();
+  openManageTileSheet(c, r);
 }
 
 /* ---------- grid / frontier ---------- */
@@ -1269,14 +1299,42 @@ function openManageTileSheet(c, r) {
   if (!tile || !tile.building) return;
   sheetContext = { kind: "manage", c, r };
   const currentDef = BUILDING_DEFS[tile.building.id];
-  $("sheetTitle").textContent = `${currentDef.icon} ${currentDef.name}`;
+  const level = tile.building.level || 1;
+  $("sheetTitle").textContent = `${currentDef.icon} ${currentDef.name} · LV.${level}`;
   const list = $("buildList");
   list.innerHTML = "";
+
+  if (currentDef.produce) {
+    if (level < BUILDING_MAX_LEVEL) {
+      const cost = upgradeCost(tile.building.id, level);
+      const afford = canAfford(cost);
+      const curMult = (1 + (level - 1) * 0.4).toFixed(1);
+      const nextMult = (1 + level * 0.4).toFixed(1);
+      const row = document.createElement("div");
+      row.className = "buildOption" + (afford ? "" : " disabled");
+      row.innerHTML = `
+        <div class="buildOptIcon">⭐</div>
+        <div class="buildOptInfo">
+          <div class="buildOptName">Покращити до LV.${level + 1}</div>
+          <div class="buildOptDesc">Виробництво: ×${curMult} → ×${nextMult}</div>
+          <div class="buildOptCost">${costChips(cost, afford)}</div>
+        </div>
+      `;
+      if (afford) row.addEventListener("click", () => upgradeBuilding(c, r));
+      list.appendChild(row);
+    } else {
+      const row = document.createElement("div");
+      row.className = "buildOptDesc";
+      row.style.padding = "0 2px 10px";
+      row.textContent = "⭐ Максимальний рівень досягнуто!";
+      list.appendChild(row);
+    }
+  }
 
   const info = document.createElement("div");
   info.className = "buildOptDesc";
   info.style.padding = "0 2px 10px";
-  info.textContent = "Тут уже стоїть " + currentDef.name.toLowerCase() + ". Можеш безкоштовно змінити призначення ділянки:";
+  info.textContent = "Можеш безкоштовно змінити призначення ділянки:";
   list.appendChild(info);
 
   const options = [
@@ -1628,6 +1686,113 @@ function renderRankSheet() {
   } else {
     $("btnClaimRank").textContent = "Виконай усі цілі вище";
   }
+}
+
+/* ---------- wheel of fortune ---------- */
+const WHEEL_SEGMENTS = [
+  { type: "res", res: "wood", amt: 50, weight: 18 },
+  { type: "res", res: "stone", amt: 40, weight: 18 },
+  { type: "res", res: "food", amt: 40, weight: 18 },
+  { type: "gold", amt: 100, weight: 8 },
+  { type: "res", res: "fish", amt: 30, weight: 15 },
+  { type: "res", res: "meat", amt: 30, weight: 15 },
+  { type: "land", weight: 5 },
+  { type: "treasure", weight: 3 },
+];
+let wheelRotation = 0;
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function wheelAvailable() {
+  return state.lastWheelSpinDate !== todayStr();
+}
+
+function pickWheelSegment() {
+  const total = WHEEL_SEGMENTS.reduce((s, seg) => s + seg.weight, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < WHEEL_SEGMENTS.length; i++) {
+    if (roll < WHEEL_SEGMENTS[i].weight) return i;
+    roll -= WHEEL_SEGMENTS[i].weight;
+  }
+  return 0;
+}
+
+function openWheelSheet() {
+  markSheetOpened();
+  const available = wheelAvailable();
+  $("wheelDesc").textContent = available
+    ? "Одна безкоштовна спроба на день!"
+    : "Сьогодні вже крутив(ла) — повертайся завтра!";
+  $("btnSpinWheel").disabled = !available;
+  $("btnSpinWheel").style.opacity = available ? "1" : ".5";
+  $("btnSpinWheel").textContent = available ? "Крутити!" : "Приходь завтра";
+  $("wheelSheetBackdrop").style.display = "block";
+  $("wheelSheet").style.display = "block";
+}
+function closeWheelSheet() {
+  $("wheelSheetBackdrop").style.display = "none";
+  $("wheelSheet").style.display = "none";
+}
+
+function spinWheel() {
+  if (!wheelAvailable()) return;
+  const idx = pickWheelSegment();
+  const segCenter = idx * 45 + 22.5;
+  const targetMod = (360 - segCenter + 360) % 360;
+  const spins = 5;
+  const jitter = (Math.random() - 0.5) * 20;
+  const currentMod = ((wheelRotation % 360) + 360) % 360;
+  let delta = spins * 360 + targetMod - currentMod;
+  if (delta < spins * 360) delta += 360;
+  wheelRotation += delta + jitter;
+
+  $("btnSpinWheel").disabled = true;
+  $("btnSpinWheel").style.opacity = ".5";
+  $("wheelDisc").style.transform = `rotate(${wheelRotation}deg)`;
+
+  state.lastWheelSpinDate = todayStr();
+  saveGame();
+
+  setTimeout(() => applyWheelReward(idx), 3700);
+}
+
+function applyWheelReward(idx) {
+  const seg = WHEEL_SEGMENTS[idx];
+  let icon = "🎁";
+  let text = "";
+  if (seg.type === "res") {
+    addResource(seg.res, seg.amt);
+    icon = RES_ICON[seg.res];
+    text = `+${seg.amt} ${icon}`;
+  } else if (seg.type === "gold") {
+    addResource("gold", seg.amt);
+    icon = "💰";
+    text = `+${seg.amt} 💰`;
+  } else if (seg.type === "land") {
+    const frontier = computeFrontier();
+    const spots = Array.from(frontier.entries()).filter(([, kind]) => kind !== "water");
+    if (spots.length) {
+      const [key] = spots[Math.floor(Math.random() * spots.length)];
+      const [c, r] = key.split(",").map(Number);
+      state.tiles[key] = { type: "land", building: null };
+      repositionBoatsIfTooClose();
+      renderWorld();
+    }
+    icon = "🏝️";
+    text = "Безкоштовна ділянка землі!";
+  } else if (seg.type === "treasure") {
+    const type = pickTreasureType();
+    state.treasures[type] = (state.treasures[type] || 0) + 1;
+    icon = TREASURE_DEFS[type].icon;
+    text = `Скарб: ${TREASURE_DEFS[type].name}!`;
+  }
+  updateHeader();
+  saveGame();
+  closeWheelSheet();
+  $("wheelRewardIcon").textContent = icon;
+  $("wheelRewardText").textContent = text;
+  $("wheelRewardOverlay").style.display = "flex";
 }
 
 /* ---------- population ---------- */
@@ -2313,7 +2478,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 62;
+const CURRENT_BUILD = 63;
 
 async function checkForUpdate() {
   try {
@@ -2363,6 +2528,9 @@ function wire() {
   $("menuFishing").addEventListener("click", () => { closeMoreSheet(); openBoatSheet(); });
   $("menuBlackMarket").addEventListener("click", () => { closeMoreSheet(); openMarketSheet(); });
   $("menuRank").addEventListener("click", () => { closeMoreSheet(); openRankSheet(); });
+  $("menuWheel").addEventListener("click", () => { closeMoreSheet(); openWheelSheet(); });
+  $("wheelSheetBackdrop").addEventListener("click", closeWheelSheet);
+  $("btnWheelRewardClose").addEventListener("click", () => { $("wheelRewardOverlay").style.display = "none"; });
   $("btnCloseRankSheet").addEventListener("click", closeRankSheet);
   $("rankSheetBackdrop").addEventListener("click", closeRankSheet);
   $("btnClaimRank").addEventListener("click", claimNextRank);

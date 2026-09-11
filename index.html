@@ -102,6 +102,10 @@
       <div class="buildOptIcon">🏆</div>
       <div class="buildOptInfo"><div class="buildOptName">Звання</div></div>
     </div>
+    <div class="buildOption" id="menuWheel">
+      <div class="buildOptIcon">🎡</div>
+      <div class="buildOptInfo"><div class="buildOptName" id="menuWheelLabel">Колесо фортуни</div></div>
+    </div>
     <div class="buildOption" id="menuMusic">
       <div class="buildOptIcon">🎵</div>
       <div class="buildOptInfo"><div class="buildOptName">Музика</div></div>
@@ -197,6 +201,41 @@
 </div>
 
 <!-- Rank up overlay -->
+<!-- Wheel of fortune sheet -->
+<div id="wheelSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="wheelSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">🎡 Колесо фортуни</div>
+  <div class="buildOptDesc" style="padding:0 2px 14px;" id="wheelDesc">Одна безкоштовна спроба на день!</div>
+
+  <div class="wheelWrap">
+    <div class="wheelPointer">▼</div>
+    <div class="wheel" id="wheelDisc">
+      <div class="wheelLabel" data-i="0">🌲<br>50</div>
+      <div class="wheelLabel" data-i="1">🪨<br>40</div>
+      <div class="wheelLabel" data-i="2">🌾<br>40</div>
+      <div class="wheelLabel" data-i="3">💰<br>100</div>
+      <div class="wheelLabel" data-i="4">🐟<br>30</div>
+      <div class="wheelLabel" data-i="5">🥩<br>30</div>
+      <div class="wheelLabel" data-i="6">🏝️<br>Land</div>
+      <div class="wheelLabel" data-i="7">💎<br>Скарб</div>
+    </div>
+  </div>
+
+  <button class="btn primary full" id="btnSpinWheel" style="margin-top:16px;" onclick="spinWheel()">Крутити!</button>
+  <button class="btn ghost full" onclick="closeWheelSheet()">Закрити</button>
+</div>
+
+<!-- Wheel reward overlay -->
+<div id="wheelRewardOverlay" class="levelUpOverlay" style="display:none;">
+  <div class="levelUpCard">
+    <div class="treasureIcon" id="wheelRewardIcon">🎁</div>
+    <div class="levelUpTitle">Вітаємо!</div>
+    <div class="levelUpLv" id="wheelRewardText" style="font-size:22px;"></div>
+    <button id="btnWheelRewardClose" class="btn primary full">Клас!</button>
+  </div>
+</div>
+
 <div id="rankUpOverlay" class="levelUpOverlay" style="display:none;">
   <div class="levelUpCard">
     <div class="treasureIcon" id="rankUpIcon">🏆</div>
@@ -260,7 +299,7 @@
   </div>
 </div>
 
-<div class="buildStamp" id="buildStamp">build v62</div>
+<div class="buildStamp" id="buildStamp">build v63</div>
 
 <script src="app.js"></script>
 </body>
