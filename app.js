@@ -1690,14 +1690,14 @@ function renderRankSheet() {
 
 /* ---------- wheel of fortune ---------- */
 const WHEEL_SEGMENTS = [
-  { type: "res", res: "wood", amt: 50, weight: 18 },
-  { type: "res", res: "stone", amt: 40, weight: 18 },
-  { type: "res", res: "food", amt: 40, weight: 18 },
-  { type: "gold", amt: 100, weight: 8 },
-  { type: "res", res: "fish", amt: 30, weight: 15 },
-  { type: "res", res: "meat", amt: 30, weight: 15 },
-  { type: "land", weight: 5 },
-  { type: "treasure", weight: 3 },
+  { type: "gold", amt: 350, weight: 20, icon: "💰", label: "300" },
+  { type: "treasure", weight: 16, icon: "🎁", label: "Скарб" },
+  { type: "freeUpgrade", weight: 16, icon: "⭐", label: "Апгрейд" },
+  { type: "landMulti", amt: 3, weight: 13, icon: "🏝️", label: "3 ділянки" },
+  { type: "happiness", amt: 30, weight: 14, icon: "😊", label: "+30 щастя" },
+  { type: "freeBoat", weight: 12, icon: "⛵", label: "Човен" },
+  { type: "legendaryTreasure", weight: 4, icon: "👑", label: "Легенда!" },
+  { type: "jackpot", weight: 5, icon: "🎰", label: "Джекпот" },
 ];
 let wheelRotation = 0;
 
@@ -1716,6 +1716,24 @@ function pickWheelSegment() {
     roll -= WHEEL_SEGMENTS[i].weight;
   }
   return 0;
+}
+
+function pickLegendaryTreasureType() {
+  const entries = Object.entries(TREASURE_DEFS).filter(([, def]) => def.legendary);
+  if (!entries.length) return pickTreasureType();
+  return entries[Math.floor(Math.random() * entries.length)][0];
+}
+
+function findUpgradeCandidate() {
+  const candidates = Object.values(state.tiles).filter((t) => {
+    if (!t.building) return false;
+    const def = BUILDING_DEFS[t.building.id];
+    if (!def || !def.produce) return false;
+    const level = t.building.level || 1;
+    return level < BUILDING_MAX_LEVEL;
+  });
+  if (!candidates.length) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 function openWheelSheet() {
@@ -1761,33 +1779,72 @@ function applyWheelReward(idx) {
   const seg = WHEEL_SEGMENTS[idx];
   let icon = "🎁";
   let text = "";
-  if (seg.type === "res") {
-    addResource(seg.res, seg.amt);
-    icon = RES_ICON[seg.res];
-    text = `+${seg.amt} ${icon}`;
-  } else if (seg.type === "gold") {
+
+  if (seg.type === "gold") {
     addResource("gold", seg.amt);
     icon = "💰";
     text = `+${seg.amt} 💰`;
-  } else if (seg.type === "land") {
-    const frontier = computeFrontier();
-    const spots = Array.from(frontier.entries()).filter(([, kind]) => kind !== "water");
-    if (spots.length) {
-      const [key] = spots[Math.floor(Math.random() * spots.length)];
-      const [c, r] = key.split(",").map(Number);
-      state.tiles[key] = { type: "land", building: null };
-      repositionBoatsIfTooClose();
-      renderWorld();
-    }
-    icon = "🏝️";
-    text = "Безкоштовна ділянка землі!";
   } else if (seg.type === "treasure") {
     const type = pickTreasureType();
     state.treasures[type] = (state.treasures[type] || 0) + 1;
     icon = TREASURE_DEFS[type].icon;
     text = `Скарб: ${TREASURE_DEFS[type].name}!`;
+  } else if (seg.type === "legendaryTreasure") {
+    const type = pickLegendaryTreasureType();
+    state.treasures[type] = (state.treasures[type] || 0) + 1;
+    icon = TREASURE_DEFS[type].icon;
+    text = `✨ ЛЕГЕНДАРНИЙ СКАРБ: ${TREASURE_DEFS[type].name}!`;
+  } else if (seg.type === "landMulti") {
+    const frontier = computeFrontier();
+    const spots = Array.from(frontier.entries()).filter(([, kind]) => kind !== "water");
+    let given = 0;
+    for (let i = 0; i < seg.amt && spots.length; i++) {
+      const pick = Math.floor(Math.random() * spots.length);
+      const [key] = spots.splice(pick, 1)[0];
+      state.tiles[key] = { type: "land", building: null };
+      given++;
+    }
+    if (given) { repositionBoatsIfTooClose(); renderWorld(); }
+    icon = "🏝️";
+    text = given ? `+${given} безкоштовні ділянки землі!` : "Острів уже й так величезний!";
+  } else if (seg.type === "happiness") {
+    state.happiness = Math.min(100, (state.happiness || 0) + seg.amt);
+    icon = "😊";
+    text = `+${seg.amt} до настрою населення!`;
+  } else if (seg.type === "freeUpgrade") {
+    const tile = findUpgradeCandidate();
+    if (tile) {
+      tile.building.level = (tile.building.level || 1) + 1;
+      renderWorld();
+      icon = "⭐";
+      text = `${BUILDING_DEFS[tile.building.id].name} безкоштовно покращено до LV.${tile.building.level}!`;
+    } else {
+      addResource("gold", 200);
+      icon = "💰";
+      text = "Усі будівлі вже максимального рівня — тримай +200 💰!";
+    }
+  } else if (seg.type === "freeBoat") {
+    if (state.boats.length < MAX_BOATS) {
+      const pos = boatGridPos(state.boats.length);
+      state.boats.push({ id: uid(), lastCollect: Date.now(), gc: pos.c, gr: pos.r, expiresAt: Date.now() + BOAT_RENT_MS });
+      renderWorld();
+      icon = "⛵";
+      text = "Безкоштовний човен на 10 хв!";
+    } else {
+      addResource("gold", 150);
+      icon = "💰";
+      text = "Усі причали для човнів зайняті — тримай +150 💰!";
+    }
+  } else if (seg.type === "jackpot") {
+    addResource("gold", 500);
+    const type = pickTreasureType();
+    state.treasures[type] = (state.treasures[type] || 0) + 1;
+    icon = "🎰";
+    text = `ДЖЕКПОТ! +500 💰 і скарб: ${TREASURE_DEFS[type].name}!`;
   }
+
   updateHeader();
+  updatePopulationUI();
   saveGame();
   closeWheelSheet();
   $("wheelRewardIcon").textContent = icon;
@@ -2478,7 +2535,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 63;
+const CURRENT_BUILD = 64;
 
 async function checkForUpdate() {
   try {
