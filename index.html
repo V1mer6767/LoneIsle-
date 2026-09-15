@@ -82,6 +82,10 @@
       <div class="buildOptIcon">🏠</div>
       <div class="buildOptInfo"><div class="buildOptName">На головний острів</div></div>
     </div>
+    <div class="buildOption" id="menuProfiles">
+      <div class="buildOptIcon">👤</div>
+      <div class="buildOptInfo"><div class="buildOptName">Профілі</div></div>
+    </div>
     <div class="buildOption" id="menuNewIsland">
       <div class="buildOptIcon">🏝️</div>
       <div class="buildOptInfo"><div class="buildOptName">Новий острів</div></div>
@@ -190,6 +194,17 @@
 </div>
 
 <!-- Rank sheet -->
+<!-- Profiles sheet -->
+<div id="profilesSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="profilesSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">👤 Профілі</div>
+  <div class="buildOptDesc" style="padding:0 2px 12px;">Кілька окремих островів на цьому пристрої — без інтернету, без паролів.</div>
+  <div class="buildList" id="profilesList"></div>
+  <button class="btn ghost full" style="margin-bottom:10px;" onclick="createProfile()">➕ Новий профіль</button>
+  <button id="btnCloseProfilesSheet" class="btn ghost full">Закрити</button>
+</div>
+
 <div id="rankSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
 <div id="rankSheet" class="sheet" style="display:none;">
   <div class="sheetHandle"></div>
@@ -299,7 +314,7 @@
   </div>
 </div>
 
-<div class="buildStamp" id="buildStamp">build v64</div>
+<div class="buildStamp" id="buildStamp">build v65</div>
 
 <script src="app.js"></script>
 </body>

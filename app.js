@@ -1,4 +1,121 @@
-const STORAGE_KEY = "loneisle_save_v1";
+/* ---------- local profiles (multiple saves on this device, no cloud) ---------- */
+const PROFILES_INDEX_KEY = "loneisle_profiles_index";
+const ACTIVE_PROFILE_KEY = "loneisle_active_profile";
+const LEGACY_SAVE_KEY = "loneisle_save_v1";
+
+function loadProfilesIndex() {
+  try {
+    const raw = localStorage.getItem(PROFILES_INDEX_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return null;
+}
+function saveProfilesIndex(list) {
+  localStorage.setItem(PROFILES_INDEX_KEY, JSON.stringify(list));
+}
+
+function initProfiles() {
+  let profiles = loadProfilesIndex();
+  if (!profiles) {
+    // First run under the profile system: migrate any existing single
+    // save (from before profiles existed) into the first profile.
+    const legacy = localStorage.getItem(LEGACY_SAVE_KEY);
+    const id = "p" + Date.now();
+    profiles = [{ id, name: "Мій острів", createdAt: Date.now() }];
+    saveProfilesIndex(profiles);
+    localStorage.setItem(ACTIVE_PROFILE_KEY, id);
+    if (legacy) localStorage.setItem(LEGACY_SAVE_KEY + "_" + id, legacy);
+    return id;
+  }
+  let active = localStorage.getItem(ACTIVE_PROFILE_KEY);
+  if (!active || !profiles.some((p) => p.id === active)) {
+    active = profiles[0].id;
+    localStorage.setItem(ACTIVE_PROFILE_KEY, active);
+  }
+  return active;
+}
+
+const ACTIVE_PROFILE_ID = initProfiles();
+const STORAGE_KEY = LEGACY_SAVE_KEY + "_" + ACTIVE_PROFILE_ID;
+
+function getProfiles() {
+  return loadProfilesIndex() || [];
+}
+function activeProfileName() {
+  const p = getProfiles().find((x) => x.id === ACTIVE_PROFILE_ID);
+  return p ? p.name : "Мій острів";
+}
+function switchProfile(id) {
+  localStorage.setItem(ACTIVE_PROFILE_KEY, id);
+  location.reload();
+}
+function createProfile() {
+  const name = prompt("Назва нового профілю:", "Новий острів");
+  if (!name || !name.trim()) return;
+  const profiles = getProfiles();
+  const id = "p" + Date.now();
+  profiles.push({ id, name: name.trim(), createdAt: Date.now() });
+  saveProfilesIndex(profiles);
+  switchProfile(id);
+}
+function renameProfile(id) {
+  const profiles = getProfiles();
+  const p = profiles.find((x) => x.id === id);
+  if (!p) return;
+  const name = prompt("Нова назва профілю:", p.name);
+  if (!name || !name.trim()) return;
+  p.name = name.trim();
+  saveProfilesIndex(profiles);
+  renderProfilesSheet();
+}
+function deleteProfile(id) {
+  const profiles = getProfiles();
+  if (profiles.length <= 1) {
+    alert("Це єдиний профіль — його не можна видалити.");
+    return;
+  }
+  const p = profiles.find((x) => x.id === id);
+  if (!confirm(`Видалити профіль "${p.name}" назавжди? Весь прогрес на ньому зникне!`)) return;
+  localStorage.removeItem(LEGACY_SAVE_KEY + "_" + id);
+  const newProfiles = profiles.filter((x) => x.id !== id);
+  saveProfilesIndex(newProfiles);
+  if (id === ACTIVE_PROFILE_ID) {
+    switchProfile(newProfiles[0].id);
+  } else {
+    renderProfilesSheet();
+  }
+}
+function openProfilesSheet() {
+  markSheetOpened();
+  renderProfilesSheet();
+  $("profilesSheetBackdrop").style.display = "block";
+  $("profilesSheet").style.display = "block";
+}
+function closeProfilesSheet() {
+  $("profilesSheetBackdrop").style.display = "none";
+  $("profilesSheet").style.display = "none";
+}
+function renderProfilesSheet() {
+  const profiles = getProfiles();
+  const list = $("profilesList");
+  list.innerHTML = profiles
+    .map((p) => {
+      const active = p.id === ACTIVE_PROFILE_ID;
+      return `<div class="buildOption ${active ? "musicActive" : ""}">
+      <div class="buildOptIcon">👤</div>
+      <div class="buildOptInfo" ${active ? "" : `onclick="switchProfile('${p.id}')" style="cursor:pointer;"`}>
+        <div class="buildOptName">${p.name}${active ? " (поточний)" : ""}</div>
+        <div class="buildOptDesc">Створено ${new Date(p.createdAt).toLocaleDateString("uk-UA")}</div>
+      </div>
+      <div style="display:flex; gap:4px; flex-shrink:0;">
+        <button onclick="renameProfile('${p.id}')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">✏️</button>
+        <button onclick="deleteProfile('${p.id}')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🗑️</button>
+      </div>
+    </div>`;
+    })
+    .join("");
+}
+
 const TILE_W = 74;
 const TILE_H = 40;
 
@@ -2535,7 +2652,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 64;
+const CURRENT_BUILD = 65;
 
 async function checkForUpdate() {
   try {
@@ -2580,6 +2697,9 @@ function wire() {
   $("btnCloseMoreSheet").addEventListener("click", closeMoreSheet);
   $("moreSheetBackdrop").addEventListener("click", closeMoreSheet);
   $("menuHome").addEventListener("click", () => { closeMoreSheet(); flyTo(0, 0); });
+  $("menuProfiles").addEventListener("click", () => { closeMoreSheet(); openProfilesSheet(); });
+  $("btnCloseProfilesSheet").addEventListener("click", closeProfilesSheet);
+  $("profilesSheetBackdrop").addEventListener("click", closeProfilesSheet);
   $("menuNewIsland").addEventListener("click", () => { closeMoreSheet(); openIslandSheet(); });
   $("menuWorkers").addEventListener("click", () => { closeMoreSheet(); openWorkerSheet(); });
   $("menuFishing").addEventListener("click", () => { closeMoreSheet(); openBoatSheet(); });
