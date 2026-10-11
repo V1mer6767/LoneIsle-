@@ -614,8 +614,8 @@
       `<span class="vwDisc"></span><span class="vwDot">1</span>`;
     b.addEventListener("click", () => { if (typeof openWheelSheet === "function") openWheelSheet(); });
     document.body.appendChild(b);
-    const upd = () => { try { b.classList.toggle("ready", typeof wheelAvailable === "function" && wheelAvailable()); } catch (e) {} };
-    upd(); setInterval(upd, 3000);
+    const upd = () => { try { const ok = typeof wheelAvailable === "function" && wheelAvailable(); b.classList.toggle("ready", ok); b.style.display = ok ? "" : "none"; } catch (e) {} };
+    upd(); setInterval(upd, 1500);
   }
 
   window.addEventListener("load", () => {
