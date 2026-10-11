@@ -57,6 +57,25 @@ body.isNight .cloud{ background:rgba(180,190,230,.28); }
 }
 .lvlStar{ position:absolute; left:calc(var(--tw)*0.2); top:calc(var(--tw)*0.1); font-style:normal; font-size:calc(var(--tw)*0.12); color:#ffd75a; text-shadow:0 1px 2px rgba(0,0,0,.6); letter-spacing:-1px; white-space:nowrap; }
 
+/* villagers */
+.vil{
+  position:absolute; left:0; top:0; width:24px; height:32px;
+  background-repeat:no-repeat; background-size:144px 256px;
+  pointer-events:none; will-change:transform;
+}
+body.isNight .vil{ filter:brightness(.66) saturate(.85); }
+.vilBubble{
+  position:absolute; transform:translate(-50%,-100%); z-index:30; pointer-events:none;
+  background:#fffaf0; color:#3b2f22; border-radius:12px; padding:7px 10px 8px; min-width:120px; max-width:190px;
+  box-shadow:0 8px 20px rgba(0,0,0,.28); text-align:center; line-height:1.25;
+  animation:bubbleIn .2s ease both;
+}
+.vilBubble::after{ content:""; position:absolute; left:50%; bottom:-6px; width:12px; height:12px; background:#fffaf0; transform:translateX(-50%) rotate(45deg); }
+.vilBubble b{ display:block; font-size:14px; font-weight:800; }
+.vilBubble i{ display:block; font-style:normal; font-size:11px; color:#8a6a2a; margin-bottom:3px; }
+.vilBubble span{ display:block; font-size:12.5px; }
+@keyframes bubbleIn{ from{ opacity:0; transform:translate(-50%,-90%) } to{ opacity:1; transform:translate(-50%,-100%) } }
+
 /* story letters */
 .letterOverlay{
   position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center;

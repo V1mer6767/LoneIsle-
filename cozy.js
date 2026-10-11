@@ -186,6 +186,8 @@
     return d.getHours() + d.getMinutes() / 60;
   }
 
+  window.cozyHour = currentHour;
+
   function applySky() {
     const h = currentHour();
     const s = skyAt(h);
