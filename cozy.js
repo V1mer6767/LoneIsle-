@@ -213,7 +213,7 @@
     document.body.classList.toggle("isNight", curNight > 0.5);
     if (wasNight !== (curNight > 0.5)) swapSprites();
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", css(s.s2));
+    if (meta) meta.setAttribute("content", css(s.s1));
     updateNatureMix();
   }
 

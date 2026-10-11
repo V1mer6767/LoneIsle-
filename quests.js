@@ -209,14 +209,6 @@
     document.getElementById("albumOverlay").style.display = "flex";
   }
 
-  /* ================= PHOTO MODE ================= */
-  function photoOn() {
-    if (typeof closeMoreSheet === "function") closeMoreSheet();
-    document.body.classList.add("photoMode");
-    try { spawnFloatTextAt(0, 0, "📷 Зроби скріншот"); } catch (e) {}
-  }
-  function photoOff() { document.body.classList.remove("photoMode"); }
-
   /* ================= UI wiring ================= */
   function badge() {
     const n = claimable();
@@ -252,9 +244,6 @@
     };
     mk("questOverlay", "🎯 Завдання", "", `<div id="questList" class="journalList"></div>`);
     mk("albumOverlay", "🐚 Альбом знахідок", "", `<div id="albumGrid" class="albumGrid"></div><div id="albumNote" class="albumNote"></div>`);
-    const x = document.createElement("button");
-    x.id = "photoExit"; x.type = "button"; x.textContent = "✕"; x.addEventListener("click", photoOff);
-    document.body.appendChild(x);
 
     const list = document.querySelector("#moreSheet .buildList");
     if (list) {
@@ -269,7 +258,6 @@
       const rows = [
         mkRow("🎯", "Завдання", () => { close(); openQuests(); }, `<span id="questRowBadge" class="rowBadge" style="display:none"></span>`),
         mkRow("🐚", "Альбом знахідок", () => { close(); openAlbum(); }),
-        mkRow("📷", "Фото-режим", photoOn),
       ];
       rows.forEach((r, i) => list.insertBefore(r, list.children[2 + i]));
     }

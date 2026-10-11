@@ -206,8 +206,8 @@ body.isNight #wxFog i{background:radial-gradient(closest-side,rgba(140,155,185,.
 .beachFind::after{ content:"✦"; position:absolute; right:-7px; top:-9px; font-size:11px; color:#fff6b0; text-shadow:0 0 6px #ffd35a; animation:findTwinkle 1.2s ease-in-out infinite; }
 @keyframes findPulse{ 0%,100%{ filter:drop-shadow(0 0 3px rgba(255,255,255,.8)) drop-shadow(0 2px 2px rgba(0,0,0,.3)) } 50%{ filter:drop-shadow(0 0 9px rgba(255,240,150,1)) drop-shadow(0 2px 2px rgba(0,0,0,.3)) } }
 @keyframes findTwinkle{ 0%,100%{ opacity:.2; transform:scale(.6) } 50%{ opacity:1; transform:scale(1.1) } }
-#photoExit{ display:none; position:fixed; right:14px; top:14px; z-index:70; width:40px; height:40px; border-radius:50%; border:0; background:rgba(0,0,0,.35); color:#fff; font-size:18px; opacity:.6; }
-body.photoMode #photoExit{ display:block; }
+#photoExit_old{ display:none; position:fixed; right:14px; top:14px; z-index:70; width:40px; height:40px; border-radius:50%; border:0; background:rgba(0,0,0,.35); color:#fff; font-size:18px; opacity:.6; }
+body.photoMode #photoExit_old{ display:block; }
 body.photoMode .topbar, body.photoMode .zoomControls, body.photoMode #vineWheel, body.photoMode .buildStamp,
 body.photoMode .collectBadge, body.photoMode .tile.lockedLand, body.photoMode .tile.lockedWater{ visibility:hidden !important; }
 
@@ -236,3 +236,25 @@ body.photoMode .collectBadge, body.photoMode .tile.lockedLand, body.photoMode .t
 #moreSheet .buildOption:nth-child(8n+8){ --c1:#ffb0d4; --c2:#d9578f; }
 #moreSheet #menuReset{ --c1:#b6bcc6; --c2:#7a8290; }
 #moreSheet .rowBadge{ position:absolute; top:-4px; right:calc(50% - 40px); margin:0; min-width:20px; height:20px; line-height:20px; font-size:11px; border:2px solid #fff; }
+
+/* photo mode bar + album */
+#photoBar{ display:none; position:fixed; left:0; right:0; bottom:calc(22px + env(safe-area-inset-bottom)); z-index:70; align-items:center; justify-content:space-between; padding:0 28px; pointer-events:none; }
+body.photoMode #photoBar{ display:flex; }
+#photoBar button{ pointer-events:auto; border:0; -webkit-tap-highlight-color:transparent; }
+#pbShutter{ width:74px; height:74px; border-radius:50%; background:rgba(255,255,255,.28); border:3px solid #fff !important; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,.3); }
+#pbShutter i{ width:56px; height:56px; border-radius:50%; background:#fff; display:block; transition:transform .1s; }
+#pbShutter:active i{ transform:scale(.86); }
+#pbAlbum, #pbExit{ width:50px; height:50px; border-radius:14px; background:rgba(0,0,0,.35); color:#fff; font-size:22px; background-size:cover; background-position:center; box-shadow:0 3px 10px rgba(0,0,0,.25); }
+#pbAlbum.hasThumb span{ display:none; }
+#pbAlbum{ border:2px solid #fff !important; }
+#photoFlash{ position:fixed; inset:0; z-index:80; background:#fff; opacity:0; pointer-events:none; transition:opacity .22s; }
+#photoFlash.on{ opacity:.85; transition:none; }
+.photoGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:6px 0 12px; }
+.photoThumb{ aspect-ratio:9/16; border:0; border-radius:10px; background-size:cover; background-position:center; background-color:rgba(0,0,0,.08); }
+#photoViewOverlay{ background:rgba(8,14,28,.88); z-index:90; }
+.photoViewBox{ width:100%; max-width:380px; max-height:94vh; display:flex; flex-direction:column; gap:10px; }
+#photoViewImg{ width:100%; max-height:72vh; object-fit:contain; border-radius:14px; background:#000; }
+.photoViewBtns{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+/* sky continues under the status bar (no separate coloured strip) */
+.topbar{ padding-top:calc(12px + env(safe-area-inset-top)); }
