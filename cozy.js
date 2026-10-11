@@ -128,27 +128,29 @@
     );
   }
 
+  const SPRITES = ["sawmill", "farm", "mine", "house", "dock", "cow", "pig", "bull", "townhouse", "restaurant", "townshop"];
+  function spriteSrc(id) { return "sprites/" + (document.body && document.body.classList.contains("isNight") ? "night" : "day") + "/" + id + ".webp"; }
   window.cozyBuildingSVG = function (id, level) {
-    const fn = ART[id];
-    if (!fn) return null;
+    if (SPRITES.indexOf(id) < 0) return null;
     level = level || 1;
-    let extra = "";
-    if (level >= 3) extra += `<g><rect x="52" y="8" width="1.6" height="14" fill="#6d4a2d"/><polygon points="53.6,8 62,11 53.6,14" fill="#f4c542"/></g>`;
-    if (level >= 5) extra += `<g fill="#f4c542"><path d="M8 10 l1.6 3.4 3.6 .4 -2.7 2.4 .8 3.6 -3.3 -1.9 -3.3 1.9 .8 -3.6 -2.7 -2.4 3.6 -.4z" transform="scale(.8)"/></g>`;
-    return `<svg class="bsvg" viewBox="0 0 64 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${fn()}${extra}</svg>`;
+    const stars = level >= 2 ? `<i class="lvlStar">${"★".repeat(Math.min(level - 1, 4))}</i>` : "";
+    return `<img class="bimg" data-b="${id}" src="${spriteSrc(id)}" alt="" draggable="false">${stars}`;
   };
+  function swapSprites() {
+    document.querySelectorAll("img.bimg").forEach((im) => { im.src = spriteSrc(im.dataset.b); });
+  }
 
   /* ================= living sky ================= */
   const STOPS = [
     // hour, sky1, sky2, sky3, tint rgba
-    [0,    "#1b2a52", "#101c3d", "#0b1530", [14, 22, 70, 0.34]],
-    [5,    "#26386a", "#1a2a54", "#121f45", [14, 22, 70, 0.30]],
+    [0,    "#1b2a52", "#101c3d", "#0b1530", [14, 22, 70, 0.2]],
+    [5,    "#26386a", "#1a2a54", "#121f45", [14, 22, 70, 0.18]],
     [6.5,  "#f6a98a", "#8a9bd6", "#5d78b8", [255, 170, 120, 0.12]],
     [8.5,  "#8fd9f7", "#4fb0e8", "#2f8fd0", [255, 255, 255, 0.0]],
     [16.5, "#8fd9f7", "#4fb0e8", "#2f8fd0", [255, 255, 255, 0.0]],
     [18.5, "#ffb47a", "#d9809a", "#6a74b8", [255, 130, 70, 0.14]],
-    [20.5, "#3a3f7a", "#232a5c", "#161d44", [20, 26, 80, 0.26]],
-    [24,   "#1b2a52", "#101c3d", "#0b1530", [14, 22, 70, 0.34]],
+    [20.5, "#3a3f7a", "#232a5c", "#161d44", [20, 26, 80, 0.16]],
+    [24,   "#1b2a52", "#101c3d", "#0b1530", [14, 22, 70, 0.2]],
   ];
   function hex(h) { return [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); }
   function mix(a, b, t) { return a.map((v, i) => Math.round(v + (b[i] - v) * t)); }
@@ -198,7 +200,9 @@
     if (stars) stars.style.opacity = String(Math.min(1, curNight * 1.1));
     const moon = document.getElementById("moon");
     if (moon) moon.style.opacity = String(curNight > 0.5 ? 1 : 0);
+    const wasNight = document.body.classList.contains("isNight");
     document.body.classList.toggle("isNight", curNight > 0.5);
+    if (wasNight !== (curNight > 0.5)) swapSprites();
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", css(s.s2));
     updateNatureMix();

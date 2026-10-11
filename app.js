@@ -1131,6 +1131,7 @@ function hasSameZoneNeighbor(c, r, zoneKey) {
 
 function setWorldPos(el, x, y) {
   el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+  el.style.zIndex = String(Math.round(y) + 5000);
 }
 
 function buildTileEl(c, r, cssType, tile) {
@@ -2306,8 +2307,8 @@ function rotateView() {
 
 /* ---------- panning + zoom ---------- */
 const MIN_SCALE = 0.5;
-const MAX_SCALE = 1.9;
-let scale = 1;
+const MAX_SCALE = 2.4;
+let scale = Math.min(1.5, Math.max(1, window.innerWidth / 300));
 const activePointers = new Map();
 let pinchStartDist = 0;
 let pinchStartScale = 1;
