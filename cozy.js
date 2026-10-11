@@ -602,8 +602,25 @@
   }
 
   /* ================= boot ================= */
+
+  /* ================= wheel of fortune on a vine ================= */
+  function buildVineWheel() {
+    if (document.getElementById("vineWheel")) return;
+    const b = document.createElement("button");
+    b.id = "vineWheel"; b.type = "button"; b.title = "Колесо фортуни";
+    b.innerHTML =
+      `<svg class="vwVine" viewBox="0 0 20 34"><path d="M10 0 C4 6 16 11 10 17 C5 22 15 27 10 34" fill="none" stroke="#3f8f35" stroke-width="3" stroke-linecap="round"/>` +
+      `<ellipse cx="5" cy="8" rx="4.5" ry="2.6" fill="#5fb84a" transform="rotate(-30 5 8)"/><ellipse cx="15" cy="20" rx="4.5" ry="2.6" fill="#4aa63c" transform="rotate(30 15 20)"/></svg>` +
+      `<span class="vwDisc"></span><span class="vwDot">1</span>`;
+    b.addEventListener("click", () => { if (typeof openWheelSheet === "function") openWheelSheet(); });
+    document.body.appendChild(b);
+    const upd = () => { try { b.classList.toggle("ready", typeof wheelAvailable === "function" && wheelAvailable()); } catch (e) {} };
+    upd(); setInterval(upd, 3000);
+  }
+
   window.addEventListener("load", () => {
     buildSkyLayers();
+    buildVineWheel();
     buildOverlays();
     addMenuItems();
     applySky();
