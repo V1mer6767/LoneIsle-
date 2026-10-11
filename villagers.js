@@ -311,6 +311,46 @@
     if (typeof spawnFloatTextAt === "function") spawnFloatTextAt(d.x || 0, (d.y || 0) - 20, text);
   }
 
+
+  /* ---------- personal stories: past + a request ---------- */
+  const RES_UA = { wood: "дерева", stone: "каменю", food: "їжі", fish: "риби", meat: "м'яса", gold: "золота" };
+  const BIOS = [
+    { g: "m", past: "Я колись був штурманом на великому кораблі. Шторм забрав і корабель, і компас. Лишилася тільки звичка дивитись на зорі.", ask: { res: "wood", n: 20, text: "Допоможи зробити невеликий компас на підставці — потрібно {n} {r}.", thanks: "Тепер я знову знаю, де північ. Дякую, друже!", gift: { gold: 25 } } },
+    { g: "f", past: "Я пекла хліб у містечку за морем. Тут пекти ніде, і мені бракує запаху печі.", ask: { res: "food", n: 25, text: "Якщо принесеш {n} {r}, я спечу тобі перший хліб на острові.", thanks: "Тримай хліб! Ще теплий. Острів тепер пахне домом.", gift: { food: 30 } } },
+    { g: "m", past: "У мене була майстерня музичних інструментів. Єдине, що врятував із води, — одна струна.", ask: { res: "wood", n: 30, text: "Мені потрібно {n} {r} на корпус гітари.", thanks: "Слухай — це для тебе! Вечорами біля вогнища буде музика.", gift: { gold: 40 } } },
+    { g: "m", past: "Я мандрував з місця на місце і ніде не затримувався. Тут вперше захотілося лишитися.", ask: { res: "fish", n: 15, text: "Якщо принесеш {n} {r}, зварю юшку — як у мами.", thanks: "Смачно ж, правда? Здається, я нарешті вдома.", gift: { gold: 30 } } },
+    { g: "f", past: "Я малювала карти. На них були острови, яких нема в жодному атласі. Один з них, виявляється, справжній.", ask: { res: "stone", n: 15, text: "Мені потрібно {n} {r}: хочу поставити камінь-покажчик на пагорбі.", thanks: "Готово! Тепер кожен мандрівник знатиме, що тут є острів.", gift: { gold: 35 } } },
+    { g: "m", past: "У дитинстві я бачив маяк і мріяв, що колись сам його запалю. Мабуть, дарма.", ask: { res: "stone", n: 25, text: "Дай мені {n} {r} — зроблю невеликий ліхтар для причалу.", thanks: "Світить! Це ще не маяк, але шлях уже не загубиться.", gift: { gold: 45 } } },
+    { g: "f", past: "Я садила троянди у великому саду. Коли довелося тікати, взяла лише пакетик насіння.", ask: { res: "food", n: 20, text: "Мені б {n} {r}: посаджу біля хати квіти.", thanks: "Бачиш, перша квітка вже виглядає! Дякую тобі.", gift: { gold: 25, wood: 10 } } },
+    { g: "m", past: "Я ловив рибу ще з дідом. Він казав: море не віддає, але ділиться — треба лише слухати.", ask: { res: "wood", n: 25, text: "Потрібно {n} {r} на новий човен, а то старий протікає.", thanks: "Спущу на воду на світанку. Приєднаєшся?", gift: { fish: 15 } } },
+    { g: "m", past: "Колись я навчав дітей читати. Тут дітей мало, але я й досі пам'ятаю кожну букву.", ask: { res: "gold", n: 20, text: "Мені потрібно {n} {r}: куплю чорнило і папір для книжки історій.", thanks: "Першу сторінку присвячую тобі. Острів заслуговує на книгу.", gift: { gold: 40 } } },
+    { g: "f", past: "Я була лікаркою. Тут усі здорові, і це найкращий діагноз.", ask: { res: "food", n: 30, text: "Приготую трав'яний чай, якщо знайдеться {n} {r}.", thanks: "Випий — буде спокійний сон. Це мій рецепт!", gift: { gold: 30 } } },
+  ];
+  function bioOf(v) {
+    if (v.kid) return null;
+    if (v.bio == null) {
+      const used = new Set(V().map((x) => x.bio).filter((x) => x != null));
+      const gk = v.female ? "f" : "m";
+      const free = BIOS.map((_, i) => i).filter((i) => BIOS[i].g === gk && !used.has(i));
+      v.bio = free.length ? pick(free) : pick(BIOS.map((_, i) => i).filter((i) => BIOS[i].g === gk));
+      v.st = 0;
+    }
+    return BIOS[v.bio] || null;
+  }
+  function resLabel(r) { return (typeof RES_ICON !== "undefined" && RES_ICON[r] ? RES_ICON[r] + " " : "") + (RES_UA[r] || r); }
+  function giveRequest(v) {
+    const b = bioOf(v); if (!b || v.st !== 1) return;
+    const a = b.ask;
+    if ((state.resources[a.res] || 0) < a.n) { toast(rt.get(v.id) || {}, `Бракує ${RES_UA[a.res]} (${a.n})`); return; }
+    state.resources[a.res] -= a.n;
+    for (const [k, n] of Object.entries(b.ask.gift || {})) addResource(k, n);
+    v.st = 2; v.helped = true;
+    try { updateHeader(); } catch (e) {}
+    try { saveGame(); } catch (e) {}
+    const d = rt.get(v.id); if (d) toast(d, "💛 " + v.name + " дякує!");
+    showBubble(v);
+  }
+
   /* ---------- tap bubble ---------- */
   function line(v) {
     if (v.kid) return pick(SAY.kid);
@@ -340,17 +380,38 @@
     bubbleEl.innerHTML = `<b></b><i></i><span></span>`;
     bubbleEl.querySelector("b").textContent = v.name;
     bubbleEl.querySelector("i").textContent = subtitle(v);
-    bubbleEl.querySelector("span").textContent = "«" + line(v) + "»";
+    const b = (!v.kid && !sleepTime()) ? bioOf(v) : null;
+    let ms = 4200, txt = line(v), btn = null;
+    if (b) {
+      if (v.st === 0) { txt = b.past; v.st = 1; ms = 9000; try { saveGame(); } catch (e) {} }
+      else if (v.st === 1) {
+        txt = b.ask.text.replace("{n}", b.ask.n).replace("{r}", RES_UA[b.ask.res]); ms = 12000;
+        btn = `Віддати ${b.ask.n} ${resLabel(b.ask.res)}`;
+      } else if (Math.random() < 0.6) { txt = b.thanks; ms = 5500; }
+    }
+    bubbleEl.querySelector("span").textContent = "«" + txt + "»";
+    if (btn) {
+      const bt = document.createElement("button");
+      bt.className = "vilAsk"; bt.textContent = btn;
+      bt.addEventListener("click", (e) => { e.stopPropagation(); giveRequest(v); });
+      bt.addEventListener("pointerup", (e) => e.stopPropagation());
+      bubbleEl.appendChild(bt);
+      bubbleEl.style.pointerEvents = "auto";
+    }
     document.getElementById("floaters").appendChild(bubbleEl);
-    bubbleId = v.id; bubbleUntil = Date.now() + 4200;
+    bubbleId = v.id; bubbleUntil = Date.now() + ms;
     placeBubble(d);
     d.mode = d.mode === "walk" ? d.mode : "idle";
   }
   function hideBubble() { if (bubbleEl) bubbleEl.remove(); bubbleEl = null; bubbleId = null; }
   function placeBubble(d) {
     const o = viewportOrigin();
-    bubbleEl.style.left = o.x + pan.x + d.x * scale + "px";
-    bubbleEl.style.top = o.y + pan.y + (d.y - 30) * scale + "px";
+    const px = o.x + pan.x + d.x * scale;
+    const w = bubbleEl.offsetWidth || 160, h = bubbleEl.offsetHeight || 80;
+    const cx = Math.max(w / 2 + 8, Math.min(window.innerWidth - w / 2 - 8, px));
+    bubbleEl.style.left = cx + "px";
+    bubbleEl.style.top = Math.max(h + 150, o.y + pan.y + (d.y - 30) * scale) + "px";
+    bubbleEl.style.setProperty("--ax", Math.max(-w / 2 + 16, Math.min(w / 2 - 16, px - cx)) + "px");
   }
 
   function hitVillager(cx, cy) {
@@ -416,6 +477,7 @@
     const origRender = window.renderWorld;
     window.renderWorld = function () { origRender.apply(this, arguments); ensureEls(); };
     requestAnimationFrame(frame);
-    window.__vil = { V, rt, syncPopulation, showBubble };
+    window.__vil = { V, rt, syncPopulation, showBubble, BIOS, giveRequest };
+    window.cozyHelped = () => V().filter((v) => v.helped).length;
   });
 })();

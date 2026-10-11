@@ -144,7 +144,7 @@
     return `<img class="bimg scat" src="sprites/scatter/s${h}.webp" alt="" draggable="false">`;
   };
   function swapSprites() {
-    document.querySelectorAll("img.bimg").forEach((im) => { im.src = spriteSrc(im.dataset.b); });
+    document.querySelectorAll("img.bimg[data-b]").forEach((im) => { im.src = spriteSrc(im.dataset.b); });
   }
 
   /* ================= living sky ================= */
@@ -439,6 +439,36 @@
       when: () => state.population >= 12,
       text: "На заході сонця хтось дістав гітару, хтось — смажену рибу. Острів гомонить, сміється і пахне димком. Ти сидиш на піску й розумієш: саме так виглядає спокій.",
       reward: { gold: 100 },
+    },
+    {
+      id: "firstkid", title: "Дитячий сміх",
+      when: () => Array.isArray(state.villagers) && state.villagers.some((v) => v.kid),
+      text: "Над островом вперше пролунав дитячий сміх. Чайки навіть притихли, щоб послухати. Діти ростуть швидко — не проґав моменту, коли вони вперше візьмуться за справжню роботу.",
+      reward: { food: 20, gold: 20 },
+    },
+    {
+      id: "campfire", title: "Вогнище на пляжі",
+      when: () => typeof decorCount === "function" && decorCount() >= 3,
+      text: "Вечори стали довшими й теплішими. Мешканці збираються біля вогнища, розповідають історії, діляться смаженою рибою. Поговори з кожним — у кожного є що сказати.",
+      reward: { gold: 40 },
+    },
+    {
+      id: "friends", title: "Книга історій",
+      when: () => typeof window.cozyHelped === "function" && window.cozyHelped() >= 3,
+      text: "Ти допоміг уже трьом сусідам, і про це заговорили. «Той, хто слухає, — найкращий господар», — сказав хтось із них. Острів більше не просто твій. Він спільний.",
+      reward: { gold: 80, wood: 40 },
+    },
+    {
+      id: "bottle3", title: "Третя пляшка",
+      when: () => state.level >= 10,
+      text: "«Я бачив здалеку твій димок, а вночі — світло в вікнах. Це було найкращим, що я бачив у цьому морі. Не зупиняйся. — Орест». На корку є ледь помітний малюнок маяка.",
+      reward: { gold: 90, stone: 40 },
+    },
+    {
+      id: "allhelped", title: "Дім для всіх",
+      when: () => typeof window.cozyHelped === "function" && window.cozyHelped() >= 6,
+      text: "Усі твої сусіди тепер мають свою історію на цьому острові. Хтось співає, хтось пече, хтось креслить мапи. Ти не просто будував, ти збирав людей. Це й є найкраща споруда.",
+      reward: { gold: 200, wood: 80, stone: 40 },
     },
     {
       id: "lighthouse", title: "Світло для мандрівників",

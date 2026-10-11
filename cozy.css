@@ -79,11 +79,11 @@ body.isNight .glow{ opacity:1; animation:flick 2.6s ease-in-out infinite; }
 body.isNight .vil{ filter:brightness(.66) saturate(.85); }
 .vilBubble{
   position:absolute; transform:translate(-50%,-100%); z-index:30; pointer-events:none;
-  background:#fffaf0; color:#3b2f22; border-radius:12px; padding:7px 10px 8px; min-width:120px; max-width:190px;
+  background:#fffaf0; color:#3b2f22; border-radius:12px; padding:7px 10px 8px; min-width:120px; max-width:210px;
   box-shadow:0 8px 20px rgba(0,0,0,.28); text-align:center; line-height:1.25;
   animation:bubbleIn .2s ease both;
 }
-.vilBubble::after{ content:""; position:absolute; left:50%; bottom:-6px; width:12px; height:12px; background:#fffaf0; transform:translateX(-50%) rotate(45deg); }
+.vilBubble::after{ content:""; position:absolute; left:calc(50% + var(--ax,0px)); bottom:-6px; width:12px; height:12px; background:#fffaf0; transform:translateX(-50%) rotate(45deg); }
 .vilBubble b{ display:block; font-size:14px; font-weight:800; }
 .vilBubble i{ display:block; font-style:normal; font-size:11px; color:#8a6a2a; margin-bottom:3px; }
 .vilBubble span{ display:block; font-size:12.5px; }
@@ -118,3 +118,47 @@ body.isNight .vil{ filter:brightness(.66) saturate(.85); }
 
 /* tall sprites must never be clipped by tile containment */
 .tile{ content-visibility: visible !important; contain: none !important; }
+
+/* ===== sea ===== */
+@keyframes waveDrift{from{background-position:0 0,0 0,0 0}to{background-position:0 0,44px 11px,0 0}}
+@media (prefers-reduced-motion:no-preference){
+  .tile.water::before{animation:waveDrift 7s linear infinite; animation-delay:var(--wd,0s);}
+}
+.tile .foam{position:absolute; inset:0; pointer-events:none; z-index:1; animation:foamPulse 4s ease-in-out infinite;}
+.tile .foam svg{width:100%; height:100%; overflow:visible; display:block;}
+.tile .foam polygon{fill:none; stroke:#fff; stroke-width:2.4; stroke-linejoin:round; stroke-dasharray:9 7; opacity:.9;}
+@keyframes foamPulse{0%,100%{opacity:.25; transform:scale(.97)}50%{opacity:.85; transform:scale(1.02)}}
+body.isNight .tile .foam polygon{stroke:#bcd4ee;}
+#seaLayer{position:absolute; left:0; top:0; width:0; height:0; pointer-events:none;}
+.seaBoat{position:absolute; left:0; top:0; will-change:transform; filter:drop-shadow(0 3px 2px rgba(0,50,80,.3));}
+.seaBoat .bob{animation:bob 2.6s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-2px) rotate(2deg)}}
+body.isNight .seaBoat{filter:brightness(.6) saturate(.8);}
+.splash{position:absolute; width:6px; height:3px; margin:-1.5px 0 0 -3px; border:1.5px solid rgba(255,255,255,.9); border-radius:50%; animation:splash 1s ease-out forwards;}
+@keyframes splash{to{width:26px; height:12px; margin:-6px 0 0 -13px; opacity:0}}
+.fishJump{position:absolute; width:0; height:0; animation:fishArc .9s cubic-bezier(.3,.6,.5,1) forwards;}
+.fishJump svg{position:absolute; left:-8px; top:-5px; animation:fishRot .9s linear forwards;}
+@keyframes fishArc{0%{transform:translate(0,0)}50%{transform:translate(calc(var(--dx)/2),-22px)}100%{transform:translate(var(--dx),0)}}
+@keyframes fishRot{0%{transform:rotate(-50deg)}50%{transform:rotate(0)}100%{transform:rotate(55deg)}}
+body.isNight .fishJump svg{filter:brightness(.7);}
+
+/* ===== weather ===== */
+#wxCanvas{position:fixed; inset:0; width:100%; height:100%; z-index:30; pointer-events:none;}
+#wxTint{position:fixed; inset:0; z-index:29; pointer-events:none; opacity:0; transition:opacity 4s; background:linear-gradient(rgba(70,90,115,.38),rgba(50,65,85,.3));}
+#wxFog{position:fixed; inset:0; z-index:31; pointer-events:none; opacity:0; transition:opacity 5s; overflow:hidden;}
+#wxFog i{position:absolute; left:-30%; width:160%; height:34%; border-radius:50%; background:radial-gradient(closest-side,rgba(235,242,248,.75),rgba(235,242,248,0)); animation:fogDrift 40s ease-in-out infinite alternate;}
+#wxFog .f1{top:18%; animation-duration:46s}
+#wxFog .f2{top:42%; animation-duration:58s; animation-direction:alternate-reverse; height:40%}
+#wxFog .f3{top:66%; animation-duration:52s}
+@keyframes fogDrift{from{transform:translateX(-9%)}to{transform:translateX(9%)}}
+body.isNight #wxFog i{background:radial-gradient(closest-side,rgba(140,155,185,.55),rgba(140,155,185,0));}
+#wxRainbow{position:fixed; left:50%; top:9%; width:min(130vw,640px); height:min(130vw,640px); transform:translateX(-50%); z-index:28; pointer-events:none; opacity:0; transition:opacity 6s;
+  border-radius:50%; background:radial-gradient(closest-side, transparent 66%, rgba(255,80,80,.7) 67%, rgba(255,170,60,.7) 70%, rgba(255,240,90,.7) 73%, rgba(110,220,110,.65) 76%, rgba(90,170,255,.65) 79%, rgba(150,110,230,.6) 82%, transparent 84%);
+  -webkit-mask-image:linear-gradient(#000 0 55%, transparent 60%); mask-image:linear-gradient(#000 0 55%, transparent 60%);}
+
+.vilAsk{ display:block; width:100%; margin-top:7px; padding:8px 10px; border:0; border-radius:10px; background:#e8a63a; color:#3b2a10; font:700 12.5px/1.2 inherit; font-family:inherit; cursor:pointer; box-shadow:0 2px 0 #b37a1c; }
+.vilAsk:active{ transform:translateY(1px); box-shadow:none; }
+
+/* comfortable tap targets on phones */
+.btn.small{ min-height:40px; padding-left:14px; padding-right:14px; }
+.btn.small.ghost.qtyMax{ min-width:48px; }
