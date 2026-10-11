@@ -195,6 +195,11 @@
       if (t.length) { const b = pick(t); const sc = standCell(b.c, b.r); goTo(v, d, sc, "work", 3500); return; }
       d.mode = "idle"; d.until = now + 5000; return;
     }
+    const hh = hour();
+    if (hh >= 18.5 && hh < 22) {
+      const spots = buildingCells((b) => ["campfire", "fountain", "bench", "gazebo", "lantern"].indexOf(b.id) >= 0);
+      if (spots.length && Math.random() < 0.75) { const b = pick(spots); goTo(v, d, standCell(b.c, b.r), "idle", 9000 + Math.random() * 9000); return; }
+    }
     const roll = Math.random();
     if (roll < 0.3) {
       const bl = buildingCells(() => true);

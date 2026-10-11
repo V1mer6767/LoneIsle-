@@ -142,10 +142,17 @@ const BUILDING_DEFS = {
   pig: { id: "pig", name: "Свинарник", icon: "🐖", unlockLevel: 5, baseCost: { wood: 24 }, produce: { res: "meat", interval: 6000, cap: 45 }, desc: "Виробляє м'ясо з часом" },
   bull: { id: "bull", name: "Загін для биків", icon: "🐂", unlockLevel: 6, baseCost: { wood: 36 }, produce: { res: "meat", interval: 8500, cap: 35 }, desc: "Виробляє м'ясо з часом" },
   townhouse: { id: "townhouse", name: "Будинок", icon: "🏘️", unlockLevel: 50, baseCost: { wood: 40, stone: 20 }, produce: { res: "gold", interval: 8000, cap: 60 }, desc: "Приносить дохід від оренди" },
+  lantern: { id: "lantern", name: "Ліхтар", icon: "🏮", unlockLevel: 2, baseCost: { wood: 8, stone: 4 }, decor: true, desc: "Вночі тепло світить. Радує мешканців" },
+  flowers: { id: "flowers", name: "Квітник", icon: "🌷", unlockLevel: 3, baseCost: { wood: 12 }, decor: true, desc: "Барвисті квіти. Радує мешканців" },
+  bench: { id: "bench", name: "Лавка під деревом", icon: "🪑", unlockLevel: 4, baseCost: { wood: 20, stone: 6 }, decor: true, desc: "Місце, де приємно посидіти. Радує мешканців" },
+  campfire: { id: "campfire", name: "Багаття", icon: "🔥", unlockLevel: 5, baseCost: { wood: 26, stone: 10 }, decor: true, desc: "Увечері біля нього збираються жителі" },
+  fountain: { id: "fountain", name: "Фонтан", icon: "⛲", unlockLevel: 8, baseCost: { stone: 60, gold: 30 }, decor: true, desc: "Дзюрчить воду. Радує мешканців" },
+  gazebo: { id: "gazebo", name: "Альтанка з вогниками", icon: "🏡", unlockLevel: 10, baseCost: { wood: 70, stone: 30, gold: 20 }, decor: true, desc: "Затишна альтанка з гірляндами" },
   restaurant: { id: "restaurant", name: "Ресторан", icon: "🍽️", unlockLevel: 50, baseCost: { wood: 75, stone: 35 }, produce: { res: "gold", interval: 9000, cap: 100 }, desc: "Приносить дохід від гостей Outer Banks" },
   townshop: { id: "townshop", name: "Крамниця", icon: "🏪", unlockLevel: 50, baseCost: { wood: 50, stone: 30 }, produce: { res: "gold", interval: 7000, cap: 80 }, desc: "Приносить дохід від туристів" },
 };
-const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "cow", "pig", "dock", "bull", "townhouse", "townshop", "restaurant"];
+const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "cow", "pig", "dock", "bull", "townhouse", "townshop", "restaurant", "lantern", "flowers", "bench", "campfire", "fountain", "gazebo"];
+function decorCount() { return Object.values(state.tiles).filter((t) => t.building && BUILDING_DEFS[t.building.id] && BUILDING_DEFS[t.building.id].decor).length; }
 
 const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", fish: "🐟", meat: "🥩", gold: "💰" };
 
@@ -1153,6 +1160,10 @@ function buildTileEl(c, r, cssType, tile) {
     el.appendChild(lock);
   }
 
+  if (tile && !tile.building && cssType === "land" && window.cozyScatter) {
+    const sc = window.cozyScatter(c, r);
+    if (sc) { const si = document.createElement("div"); si.className = "buildingIcon scatterIcon"; si.innerHTML = sc; el.appendChild(si); }
+  }
   if (tile && tile.building) {
     const icon = document.createElement("div");
     icon.className = "buildingIcon" + (isDock ? " dockIcon" : "");
@@ -2029,7 +2040,7 @@ function tickPopulation() {
   state.popStruggling = !fed;
 
   if (fed) {
-    state.happiness = Math.min(100, state.happiness + 2);
+    state.happiness = Math.min(100, state.happiness + 2 + Math.min(4, decorCount()));
   } else {
     state.happiness = Math.max(0, state.happiness - 8);
   }
@@ -2664,7 +2675,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 67;
+const CURRENT_BUILD = 68;
 
 async function checkForUpdate() {
   try {

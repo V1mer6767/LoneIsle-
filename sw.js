@@ -1,10 +1,10 @@
-const CACHE = "loneisle-cache-v59";
+const CACHE = "loneisle-cache-v60";
 const ASSETS = [
   "./", "./index.html", "./style.css", "./cozy.css", "./app.js", "./cozy.js", "./villagers.js", "./manifest.json",
   "./icons/favicon-32.png", "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png"
 ].concat(
-  ["sawmill","farm","mine","house","dock","cow","pig","bull","townhouse","restaurant","townshop"].flatMap((n) => ["./sprites/day/" + n + ".webp", "./sprites/night/" + n + ".webp"])
-).concat(
+  ["sawmill","farm","mine","house","dock","cow","pig","bull","townhouse","restaurant","townshop","lantern","flowers","bench","campfire","fountain","gazebo"].flatMap((n) => ["./sprites/day/" + n + ".webp", "./sprites/night/" + n + ".webp"])
+).concat(["0","1","2","3"].map((n) => "./sprites/scatter/s" + n + ".webp")).concat(
   ["wood","food","stone","meat","fish","gold","r0","r1","r2","r3","r4","r5","k0","k1","k2"].map((n) => "./sprites/chars/" + n + ".webp")
 );
 

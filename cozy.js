@@ -128,13 +128,20 @@
     );
   }
 
-  const SPRITES = ["sawmill", "farm", "mine", "house", "dock", "cow", "pig", "bull", "townhouse", "restaurant", "townshop"];
+  const SPRITES = ["sawmill", "farm", "mine", "house", "dock", "cow", "pig", "bull", "townhouse", "restaurant", "townshop", "lantern", "flowers", "bench", "campfire", "fountain", "gazebo"];
+  const GLOWS = { lantern: 1, campfire: 1, gazebo: 1, bench: 1, fountain: 1 };
   function spriteSrc(id) { return "sprites/" + (document.body && document.body.classList.contains("isNight") ? "night" : "day") + "/" + id + ".webp"; }
   window.cozyBuildingSVG = function (id, level) {
     if (SPRITES.indexOf(id) < 0) return null;
     level = level || 1;
     const stars = level >= 2 ? `<i class="lvlStar">${"★".repeat(Math.min(level - 1, 4))}</i>` : "";
-    return `<img class="bimg" data-b="${id}" src="${spriteSrc(id)}" alt="" draggable="false">${stars}`;
+    const glow = GLOWS[id] ? `<i class="glow g-${id}"></i>` : "";
+    return `<img class="bimg" data-b="${id}" src="${spriteSrc(id)}" alt="" draggable="false">${glow}${stars}`;
+  };
+  window.cozyScatter = function (c, r) {
+    const h = Math.abs((c * 73856093) ^ (r * 19349663)) % 7;
+    if (h > 3) return null;
+    return `<img class="bimg scat" src="sprites/scatter/s${h}.webp" alt="" draggable="false">`;
   };
   function swapSprites() {
     document.querySelectorAll("img.bimg").forEach((im) => { im.src = spriteSrc(im.dataset.b); });
