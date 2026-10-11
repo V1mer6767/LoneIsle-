@@ -191,7 +191,7 @@ body.isNight #wxFog i{background:radial-gradient(closest-side,rgba(140,155,185,.
 .questCard .btn{ margin-top:8px; }
 .rowBadge{ margin-left:auto; min-width:22px; height:22px; border-radius:11px; background:#ff5a4d; color:#fff; font:800 12px/22px sans-serif; text-align:center; padding:0 6px; }
 #btnMore.hasNew{ position:relative; }
-#btnMore.hasNew::after{ content:""; position:absolute; right:6px; top:6px; width:11px; height:11px; border-radius:50%; background:#ff5a4d; border:2px solid #fff; }
+#btnMore.hasNew::after{ content:""; position:absolute; right:-3px; top:-3px; width:11px; height:11px; border-radius:50%; background:#ff5a4d; border:2px solid #fff; }
 .albumGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:6px 0 10px; }
 .albumItem{ background:rgba(255,255,255,.55); border-radius:12px; padding:8px 4px 7px; text-align:center; }
 .albumItem .aE{ font-size:30px; line-height:1.2; filter:brightness(0) opacity(.22); }
@@ -210,3 +210,29 @@ body.isNight #wxFog i{background:radial-gradient(closest-side,rgba(140,155,185,.
 body.photoMode #photoExit{ display:block; }
 body.photoMode .topbar, body.photoMode .zoomControls, body.photoMode #vineWheel, body.photoMode .buildStamp,
 body.photoMode .collectBadge, body.photoMode .tile.lockedLand, body.photoMode .tile.lockedWater{ visibility:hidden !important; }
+
+/* ===== "Дії" as a phone home screen of app icons ===== */
+#moreSheet .sheetTitle{ text-align:center; margin-bottom:14px; }
+#moreSheet .buildList{ grid-template-columns:repeat(4,1fr); gap:16px 6px; margin-bottom:12px; }
+#moreSheet .buildOption{
+  position:relative; flex-direction:column; justify-content:flex-start; gap:6px; background:none; padding:0; border:0; text-align:center;
+  -webkit-tap-highlight-color:transparent; --c1:#7fd0f5; --c2:#3f9fe0;
+}
+#moreSheet .buildOptIcon{
+  width:62px; height:62px; font-size:32px; line-height:62px; border-radius:18px; margin:0 auto;
+  background:linear-gradient(160deg,var(--c1),var(--c2)); box-shadow:0 5px 12px rgba(30,60,90,.22), inset 0 1px 0 rgba(255,255,255,.55);
+  transition:transform .12s;
+}
+#moreSheet .buildOption:active .buildOptIcon{ transform:scale(.9); }
+#moreSheet .buildOptInfo{ flex:none; width:100%; }
+#moreSheet .buildOptName{ font-size:11.5px; line-height:1.15; font-weight:700; color:var(--ink,#2b3a4a); word-break:break-word; hyphens:auto; }
+#moreSheet .buildOption:nth-child(8n+1){ --c1:#ffc46b; --c2:#f08a3c; }
+#moreSheet .buildOption:nth-child(8n+2){ --c1:#8fe08a; --c2:#3fae52; }
+#moreSheet .buildOption:nth-child(8n+3){ --c1:#7fd0f5; --c2:#3f8fe0; }
+#moreSheet .buildOption:nth-child(8n+4){ --c1:#ff9a9a; --c2:#e0525f; }
+#moreSheet .buildOption:nth-child(8n+5){ --c1:#c9a6ff; --c2:#7a5ad8; }
+#moreSheet .buildOption:nth-child(8n+6){ --c1:#ffe27a; --c2:#e8b02e; }
+#moreSheet .buildOption:nth-child(8n+7){ --c1:#7ee6d4; --c2:#2fa89a; }
+#moreSheet .buildOption:nth-child(8n+8){ --c1:#ffb0d4; --c2:#d9578f; }
+#moreSheet #menuReset{ --c1:#b6bcc6; --c2:#7a8290; }
+#moreSheet .rowBadge{ position:absolute; top:-4px; right:calc(50% - 40px); margin:0; min-width:20px; height:20px; line-height:20px; font-size:11px; border:2px solid #fff; }

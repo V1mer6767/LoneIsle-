@@ -582,7 +582,7 @@
   let natureRow = null;
   function refreshNatureMenu() {
     if (!natureRow) return;
-    natureRow.querySelector(".buildOptName").textContent = natureOn ? "Звуки природи: увімкнено" : "Звуки природи: вимкнено";
+    natureRow.querySelector(".buildOptName").textContent = natureOn ? "Природа: так" : "Природа: ні";
     natureRow.querySelector(".buildOptIcon").textContent = natureOn ? "🌊" : "🔇";
   }
   function addMenuItems() {
