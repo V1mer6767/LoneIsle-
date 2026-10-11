@@ -63,7 +63,7 @@
       .map((k) => { const [c, r] = k.split(",").map(Number); return { c, r }; });
   }
 
-  // Dijkstra over walkable tiles; walking through buildings is allowed but discouraged
+  // Dijkstra over walkable tiles; buildings block the way (except entering a house)
   function findPath(from, to) {
     if (from.c === to.c && from.r === to.r) return [];
     const dist = new Map(); const prev = new Map();
@@ -78,7 +78,9 @@
       for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const nc = cur.c + dc, nr = cur.r + dr;
         if (!isWalkable(nc, nr)) continue;
-        const nd = cur.d + (isEmpty(nc, nr) ? 1 : 4);
+        // buildings are obstacles: only the destination itself (a house door) may be a building
+        if (!isEmpty(nc, nr) && !(nc === to.c && nr === to.r)) continue;
+        const nd = cur.d + 1;
         const k = key(nc, nr);
         if (!dist.has(k) || nd < dist.get(k)) { dist.set(k, nd); prev.set(k, key(cur.c, cur.r)); open.push({ c: nc, r: nr, d: nd }); }
       }
@@ -160,7 +162,8 @@
 
   /* ---------- behaviour ---------- */
   function goTo(v, d, cell, thenMode, thenFor) {
-    const path = findPath({ c: d.c, r: d.r }, cell);
+    // never stop on top of a building (only houses can be entered)
+    const path = (thenMode !== "enter" && !isEmpty(cell.c, cell.r)) ? null : findPath({ c: d.c, r: d.r }, cell);
     if (path === null) { d.mode = "idle"; d.until = Date.now() + 3000; return; }
     d.path = path; d.thenMode = thenMode; d.thenFor = thenFor;
     if (!path.length) { arrive(v, d); return; }

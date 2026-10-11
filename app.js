@@ -1138,7 +1138,8 @@ function hasSameZoneNeighbor(c, r, zoneKey) {
 
 function setWorldPos(el, x, y) {
   el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
-  el.style.zIndex = String(Math.round(y) + 5000);
+  // empty floor tiles sit below walkers/boats so they never hide them between tiles
+  el.style.zIndex = String(Math.round(y) + 5000 - (el.dataset && el.dataset.flat === "1" ? 40 : 0));
 }
 
 function buildTileEl(c, r, cssType, tile) {
@@ -1149,6 +1150,7 @@ function buildTileEl(c, r, cssType, tile) {
   const merged = (cssType === "land" || cssType === "water") && zoneKey !== "empty" && hasSameZoneNeighbor(c, r, zoneKey);
   const el = document.createElement("div");
   el.className = `tile ${cssType}${isDock ? " dockTile" : ""}${zoneClass}${merged ? " noEdge" : ""}`;
+  if (!(tile && tile.building)) el.dataset.flat = "1";
   setWorldPos(el, x, y);
   el.dataset.c = c;
   el.dataset.r = r;
@@ -2675,7 +2677,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 78;
+const CURRENT_BUILD = 79;
 
 async function checkForUpdate() {
   try {
