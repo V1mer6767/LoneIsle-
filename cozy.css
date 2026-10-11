@@ -1,0 +1,83 @@
+/* LoneIsle cozy layer */
+:root{
+  --sky3:#2f8fd0;
+  --display: ui-rounded, "SF Pro Rounded", "Baloo 2", "Trebuchet MS", "Avenir Next", system-ui, sans-serif;
+  --body: ui-rounded, "SF Pro Rounded", "Nunito", "Avenir Next", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.sky{
+  background:linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 55%, var(--sky3) 100%);
+  transition:background 2s;
+  overflow:hidden;
+}
+.dayTint{ position:fixed; inset:0; z-index:3; pointer-events:none; transition:background 3s; }
+
+/* stars + moon */
+.stars{ position:absolute; inset:0; opacity:0; transition:opacity 4s; }
+.stars i{ position:absolute; background:#fff; border-radius:50%; animation:twinkle 4s ease-in-out infinite; }
+@keyframes twinkle{ 0%,100%{opacity:.35} 50%{opacity:1} }
+.moon{
+  position:absolute; right:14%; top:9%; width:44px; height:44px; border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #fffbe6 0%, #f6efc9 60%, #e3dba8 100%);
+  box-shadow:0 0 40px 10px rgba(255,248,200,.35);
+  opacity:0; transition:opacity 4s;
+}
+
+/* clouds */
+.cloud{
+  position:absolute; width:120px; height:34px; border-radius:40px;
+  background:rgba(255,255,255,.82);
+  filter:blur(.3px);
+  animation:drift linear infinite;
+  will-change:transform;
+}
+.cloud::before,.cloud::after{ content:""; position:absolute; background:inherit; border-radius:50%; }
+.cloud::before{ width:48px; height:48px; left:18px; top:-22px; }
+.cloud::after{ width:36px; height:36px; left:62px; top:-14px; }
+.cloud.c1{ top:9%;  animation-duration:150s; animation-delay:-40s; }
+.cloud.c2{ top:20%; transform:scale(.7); animation-duration:210s; animation-delay:-120s; opacity:.7; }
+.cloud.c3{ top:5%;  transform:scale(1.2); animation-duration:260s; animation-delay:-200s; opacity:.6; }
+.cloud.c4{ top:30%; transform:scale(.55); animation-duration:180s; animation-delay:-10s; opacity:.55; }
+@keyframes drift{ from{ left:-200px } to{ left:110% } }
+body.isNight .cloud{ background:rgba(180,190,230,.28); }
+
+/* birds */
+.birdLane{ position:absolute; inset:0; pointer-events:none; }
+.bird{ position:absolute; left:-40px; animation:fly linear forwards; opacity:.75; }
+@keyframes fly{ from{ transform:translateX(0) } to{ transform:translateX(calc(100vw + 80px)) translateY(-30px) } }
+
+/* buildings drawn as SVG */
+.buildingIcon{ font-size:0; line-height:0; top:42%; transform:translate(-50%,-62%); filter:drop-shadow(0 3px 3px rgba(0,0,0,.22)); }
+.buildingIcon::after{ display:none; }
+.bsvg{ width:calc(var(--tw)*0.92); height:auto; display:block; overflow:visible; }
+.buildingIcon.dockIcon{ left:50%; }
+.sway{ transform-box:fill-box; transform-origin:50% 100%; animation:sway 5s ease-in-out infinite; }
+.sway.s2{ animation-delay:-1.7s; animation-duration:6s; }
+.sway.s3{ animation-delay:-3.1s; animation-duration:5.5s; }
+@keyframes sway{ 0%,100%{ transform:rotate(-1.4deg) } 50%{ transform:rotate(1.4deg) } }
+
+/* story letters */
+.letterOverlay{
+  position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center;
+  background:rgba(14,24,48,.55); padding:20px;
+  backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+}
+.letterCard{
+  width:100%; max-width:380px; max-height:82vh; overflow:auto;
+  background:#fbf3df; color:#4a3a28; border-radius:18px; padding:22px 20px 18px;
+  box-shadow:0 20px 50px rgba(0,0,0,.35), inset 0 0 0 2px rgba(150,110,60,.18);
+  animation:letterIn .5s ease both;
+}
+@keyframes letterIn{ from{ transform:translateY(14px) scale(.97); opacity:0 } to{ transform:none; opacity:1 } }
+.letterSeal{ font-size:30px; text-align:center; margin-bottom:4px; }
+.letterTitle{ font-family:var(--display); font-weight:800; font-size:22px; text-align:center; margin-bottom:10px; }
+.letterText{ font-size:16px; line-height:1.55; margin-bottom:12px; }
+.letterReward{ font-size:14px; font-weight:700; color:#8a6a2a; text-align:center; margin-bottom:14px; min-height:1px; }
+.journalList{ display:flex; flex-direction:column; gap:12px; margin:8px 0 14px; }
+.journalEntry{ background:rgba(255,255,255,.5); border-radius:12px; padding:10px 12px; }
+.journalH{ font-weight:800; margin-bottom:3px; }
+.journalT{ font-size:14px; line-height:1.5; }
+.journalEmpty{ text-align:center; font-size:14px; color:#8a7658; padding:6px; }
+
+@media (prefers-reduced-motion: reduce){
+  .cloud,.sway,.bird,.stars i{ animation:none !important; }
+}

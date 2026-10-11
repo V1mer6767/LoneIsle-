@@ -1,7 +1,17 @@
 /* ---------- local profiles (multiple saves on this device, no cloud) ---------- */
-const PROFILES_INDEX_KEY = "loneisle_profiles_index";
-const ACTIVE_PROFILE_KEY = "loneisle_active_profile";
-const LEGACY_SAVE_KEY = "loneisle_save_v1";
+const PROFILES_INDEX_KEY = "loneisle_profiles_index_v2";
+const ACTIVE_PROFILE_KEY = "loneisle_active_profile_v2";
+const LEGACY_SAVE_KEY = "loneisle_save_v2";
+// Fresh start (v66): drop every old save, the story begins anew.
+(function wipeOldSaves() {
+  try {
+    if (localStorage.getItem("loneisle_fresh_v66")) return;
+    Object.keys(localStorage).forEach((k) => {
+      if (k.startsWith("loneisle_save_v1") || k === "loneisle_profiles_index" || k === "loneisle_active_profile") localStorage.removeItem(k);
+    });
+    localStorage.setItem("loneisle_fresh_v66", "1");
+  } catch (e) {}
+})();
 
 function loadProfilesIndex() {
   try {
@@ -1145,7 +1155,8 @@ function buildTileEl(c, r, cssType, tile) {
   if (tile && tile.building) {
     const icon = document.createElement("div");
     icon.className = "buildingIcon" + (isDock ? " dockIcon" : "");
-    icon.textContent = BUILDING_DEFS[tile.building.id].icon;
+    const svg = window.cozyBuildingSVG && window.cozyBuildingSVG(tile.building.id, tile.building.level || 1);
+    if (svg) icon.innerHTML = svg; else icon.textContent = BUILDING_DEFS[tile.building.id].icon;
     el.appendChild(icon);
   }
 
@@ -2652,7 +2663,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 65;
+const CURRENT_BUILD = 66;
 
 async function checkForUpdate() {
   try {
@@ -2789,7 +2800,6 @@ function init() {
   saveGame();
 
   setInterval(tickWorkers, 1200);
-  setInterval(checkPolice, POLICE_CHECK_MS);
   setInterval(tickPopulation, POP_TICK_MS);
   updatePopulationUI();
   setInterval(saveGame, 8000);
