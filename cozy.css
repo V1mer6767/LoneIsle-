@@ -258,3 +258,6 @@ body.photoMode #photoBar{ display:flex; }
 
 /* sky continues under the status bar (no separate coloured strip) */
 .topbar{ padding-top:calc(12px + env(safe-area-inset-top)); }
+
+/* page background = sky top colour, so any area outside the picture (notch / Dynamic Island strip) matches */
+html, body{ background-color:var(--skyTop, var(--sky1)); }

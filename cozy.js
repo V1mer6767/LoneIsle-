@@ -213,7 +213,10 @@
     document.body.classList.toggle("isNight", curNight > 0.5);
     if (wasNight !== (curNight > 0.5)) swapSprites();
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", css(s.s1));
+    // browser / status-bar colour = the top edge of the picture (sky colour with the daylight tint on top)
+    const topCol = css(mix(s.s1, [s.tint[0], s.tint[1], s.tint[2]], s.tint[3]));
+    if (meta) meta.setAttribute("content", topCol);
+    root.style.setProperty("--skyTop", topCol);
     updateNatureMix();
   }
 

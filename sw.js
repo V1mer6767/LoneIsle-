@@ -1,4 +1,4 @@
-const CACHE = "loneisle-cache-v71";
+const CACHE = "loneisle-cache-v72";
 const ASSETS = [
   "./", "./index.html", "./style.css", "./cozy.css", "./app.js", "./cozy.js", "./villagers.js", "./nature.js", "./quests.js", "./photo.js", "./manifest.json",
   "./icons/favicon-32.png", "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-192-maskable.png", "./icons/icon-512-maskable.png"
