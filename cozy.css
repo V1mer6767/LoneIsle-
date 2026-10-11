@@ -115,3 +115,6 @@ body.isNight .vil{ filter:brightness(.66) saturate(.85); }
 @media (prefers-reduced-motion: reduce){
   .cloud,.sway,.bird,.stars i{ animation:none !important; }
 }
+
+/* tall sprites must never be clipped by tile containment */
+.tile{ content-visibility: visible !important; contain: none !important; }
