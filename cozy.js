@@ -128,7 +128,7 @@
     );
   }
 
-  const SPRITES = ["sawmill", "farm", "mine", "house", "dock", "cow", "pig", "bull", "townhouse", "restaurant", "townshop", "lantern", "flowers", "bench", "campfire", "fountain", "gazebo"];
+  const SPRITES = ["sawmill", "farm", "mine", "house", "dock", "cow", "pig", "bull", "townhouse", "restaurant", "townshop", "lantern", "flowers", "bench", "campfire", "fountain", "gazebo", "boat"];
   const GLOWS = { lantern: 1, campfire: 1, gazebo: 1, bench: 1, fountain: 1 };
   function spriteSrc(id) { return "sprites/" + (document.body && document.body.classList.contains("isNight") ? "night" : "day") + "/" + id + ".webp"; }
   window.cozyBuildingSVG = function (id, level) {

@@ -261,3 +261,8 @@ body.photoMode #photoBar{ display:flex; }
 
 /* page background = sky top colour, so any area outside the picture (notch / Dynamic Island strip) matches */
 html, body{ background-color:var(--skyTop, var(--sky1)); }
+
+/* 3D fishing boat sprite */
+.boat.sprite{ font-size:0; width:0; height:0; animation:none; filter:none; transform:none; }
+.boat.sprite .bimg{ animation:boatSway 3.6s ease-in-out infinite; transform-origin:50% 76%; }
+@keyframes boatSway{ 0%,100%{ transform:rotate(-1.6deg) translateY(0) } 50%{ transform:rotate(1.6deg) translateY(-2px) } }

@@ -636,7 +636,7 @@ function repositionBoatsIfTooClose() {
     moved = true;
     const { x, y } = isoPos(pos.c, pos.r);
     const boatEl = boatEls.get(boat.id);
-    if (boatEl) { boatEl.style.left = x + "px"; boatEl.style.top = y + "px"; }
+    if (boatEl) { boatEl.style.left = x + "px"; boatEl.style.top = y + "px"; boatEl.style.zIndex = String(Math.round(y) + 5001); }
     const badge = badgeEls.get(`boat:${boat.id}`);
     if (badge) { badge.style.left = x + "px"; badge.style.top = y - 34 + "px"; }
   }
@@ -695,7 +695,9 @@ function renderBoats() {
     el.className = "boat";
     el.style.left = x + "px";
     el.style.top = y + "px";
-    el.textContent = BUILDING_DEFS.boat.icon;
+    el.style.zIndex = String(Math.round(y) + 5001);
+    const spr = typeof window.cozyBuildingSVG === "function" ? window.cozyBuildingSVG("boat", 1) : null;
+    if (spr) { el.classList.add("sprite"); el.innerHTML = spr; } else el.textContent = BUILDING_DEFS.boat.icon;
     el.dataset.boatId = boat.id;
     world.appendChild(el);
     boatEls.set(boat.id, el);
@@ -2312,7 +2314,7 @@ function rotateView() {
   for (const boat of state.boats) {
     const { x, y } = isoPos(boat.gc, boat.gr);
     const boatEl = boatEls.get(boat.id);
-    if (boatEl) { boatEl.style.left = x + "px"; boatEl.style.top = y + "px"; }
+    if (boatEl) { boatEl.style.left = x + "px"; boatEl.style.top = y + "px"; boatEl.style.zIndex = String(Math.round(y) + 5001); }
     const badge = badgeEls.get(`boat:${boat.id}`);
     if (badge) { badge.style.left = x + "px"; badge.style.top = y - 34 + "px"; }
   }
@@ -2677,7 +2679,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 80;
+const CURRENT_BUILD = 81;
 
 async function checkForUpdate() {
   try {
