@@ -129,14 +129,17 @@
   }
 
   const SPRITES = ["sawmill", "farm", "mine", "house", "dock", "cow", "pig", "bull", "townhouse", "restaurant", "townshop", "lantern", "flowers", "bench", "campfire", "fountain", "gazebo", "boat"];
+  const TIERED = ["house", "sawmill", "farm", "mine", "dock", "cow", "pig", "bull", "townhouse", "restaurant", "townshop"];
   const GLOWS = { lantern: 1, campfire: 1, gazebo: 1, bench: 1, fountain: 1 };
   function spriteSrc(id) { return "sprites/" + (document.body && document.body.classList.contains("isNight") ? "night" : "day") + "/" + id + ".webp"; }
   window.cozyBuildingSVG = function (id, level) {
     if (SPRITES.indexOf(id) < 0) return null;
     level = level || 1;
-    const stars = level >= 2 ? `<i class="lvlStar">${"★".repeat(Math.min(level - 1, 4))}</i>` : "";
+    // upgrades change the building itself: level 2-3 = tidy yard with fence, level 4-5 = lamps, flags, path
+    const tier = level >= 4 ? 3 : level >= 2 ? 2 : 1;
+    const key = TIERED.indexOf(id) >= 0 && tier > 1 ? id + "_t" + tier : id;
     const glow = GLOWS[id] ? `<i class="glow g-${id}"></i>` : "";
-    return `<img class="bimg" data-b="${id}" src="${spriteSrc(id)}" alt="" draggable="false">${glow}${stars}`;
+    return `<img class="bimg" data-b="${key}" src="${spriteSrc(key)}" alt="" draggable="false">${glow}`;
   };
   window.cozyScatter = function (c, r) {
     const h = Math.abs((c * 73856093) ^ (r * 19349663)) % 7;

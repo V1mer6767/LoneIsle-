@@ -2679,7 +2679,7 @@ function renderMusicSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 81;
+const CURRENT_BUILD = 82;
 
 async function checkForUpdate() {
   try {
