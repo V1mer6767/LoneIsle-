@@ -135,6 +135,7 @@ const BUILDING_DEFS = {
   sawmill: { id: "sawmill", name: "Лісопилка", icon: "🌲", unlockLevel: 1, baseCost: { wood: 6 }, produce: { res: "wood", interval: 4000, cap: 60 }, desc: "Виробляє дерево з часом" },
   farm: { id: "farm", name: "Ферма", icon: "🌾", unlockLevel: 2, baseCost: { wood: 10 }, produce: { res: "food", interval: 5000, cap: 60 }, desc: "Вирощує культури з часом" },
   mine: { id: "mine", name: "Копальня", icon: "⛏️", unlockLevel: 3, baseCost: { wood: 20 }, produce: { res: "stone", interval: 6000, cap: 50 }, desc: "Виробляє камінь з часом" },
+  warehouse: { id: "warehouse", name: "Склад", icon: "📦", unlockLevel: 3, baseCost: { wood: 40, stone: 20 }, storage: 500, desc: "Збільшує ліміт ресурсів на +500 (дерево, камінь, їжа, риба, м'ясо)" },
   house: { id: "house", name: "Хатина", icon: "🏠", unlockLevel: 4, baseCost: { wood: 18, stone: 10 }, produce: { res: "gold", interval: 10000, cap: 40 }, desc: "Приносить золото з часом" },
   dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 26, stone: 16 }, produce: { res: "gold", interval: 9000, cap: 30 }, special: "dock", desc: "Відкриває забудову на воді й приносить золото від портових зборів" },
   boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 18, gold: 10 }, produce: { res: "fish", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
@@ -151,7 +152,7 @@ const BUILDING_DEFS = {
   restaurant: { id: "restaurant", name: "Ресторан", icon: "🍽️", unlockLevel: 50, baseCost: { wood: 75, stone: 35 }, produce: { res: "gold", interval: 9000, cap: 100 }, desc: "Приносить дохід від гостей Outer Banks" },
   townshop: { id: "townshop", name: "Крамниця", icon: "🏪", unlockLevel: 50, baseCost: { wood: 50, stone: 30 }, produce: { res: "gold", interval: 7000, cap: 80 }, desc: "Приносить дохід від туристів" },
 };
-const BUILDING_ORDER = ["sawmill", "farm", "mine", "house", "cow", "pig", "dock", "bull", "townhouse", "townshop", "restaurant", "lantern", "flowers", "bench", "campfire", "fountain", "gazebo"];
+const BUILDING_ORDER = ["sawmill", "farm", "mine", "warehouse", "house", "cow", "pig", "dock", "bull", "townhouse", "townshop", "restaurant", "lantern", "flowers", "bench", "campfire", "fountain", "gazebo"];
 function decorCount() { return Object.values(state.tiles).filter((t) => t.building && BUILDING_DEFS[t.building.id] && BUILDING_DEFS[t.building.id].decor).length; }
 
 const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", fish: "🐟", meat: "🥩", gold: "💰" };
@@ -545,8 +546,28 @@ function canAfford(cost) {
 function spend(cost) {
   Object.entries(cost).forEach(([res, amt]) => { state.resources[res] -= amt; });
 }
+const STORAGE_BASE = 300;
+function storageCap(res) {
+  if (res === "gold") return Infinity; // money is never capped
+  return STORAGE_BASE + (state.level || 1) * 30 + countBuildings("warehouse") * 500;
+}
+let lastFullToastAt = 0;
 function addResource(res, amt) {
-  state.resources[res] = (state.resources[res] || 0) + amt;
+  const cur = state.resources[res] || 0;
+  if (amt > 0) {
+    const cap = storageCap(res);
+    // never take away what the player already has; only limit new income
+    const room = Math.max(0, cap - cur);
+    if (amt > room) {
+      amt = room;
+      if (Date.now() - lastFullToastAt > 4000 && typeof showToast === "function") {
+        lastFullToastAt = Date.now();
+        showToast("📦 Склад повний — збудуй Склад, щоб зберігати більше");
+      }
+    }
+    if (amt <= 0) return;
+  }
+  state.resources[res] = cur + amt;
   if (amt > 0) {
     if (!state.lifetime) state.lifetime = {};
     state.lifetime[res] = (state.lifetime[res] || 0) + amt;
@@ -1255,6 +1276,11 @@ function updateHeader() {
   $("resFish").textContent = formatNum(state.resources.fish);
   $("resMeat").textContent = formatNum(state.resources.meat);
   $("resGold").textContent = formatNum(state.resources.gold);
+  document.querySelectorAll(".resPill[data-res]").forEach((p) => {
+    const r = p.dataset.res, cap = storageCap(r);
+    p.classList.toggle("full", isFinite(cap) && (state.resources[r] || 0) >= cap);
+    p.title = isFinite(cap) ? `${Math.floor(state.resources[r] || 0)} / ${cap}` : "";
+  });
 }
 
 /* ---------- floating text ---------- */
@@ -2797,7 +2823,7 @@ function renderBackupSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 84;
+const CURRENT_BUILD = 85;
 (function(){ const el=document.getElementById('buildStamp'); if(el) el.textContent='build v'+CURRENT_BUILD; })();
 
 async function checkForUpdate() {

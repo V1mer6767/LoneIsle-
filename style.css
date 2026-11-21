@@ -524,3 +524,6 @@ input, textarea{
 /* toast */
 .liToast{position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom)); transform:translate(-50%,20px); max-width:min(92vw,420px); padding:12px 16px; border-radius:16px; background:rgba(40,30,20,.92); color:#fff; font-size:14px; line-height:1.35; z-index:200; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; text-align:center;}
 .liToast.show{opacity:1; transform:translate(-50%,0);}
+
+.resPill.full{box-shadow:0 0 0 2px #ff8a3d, 0 0 10px rgba(255,138,61,.7); animation:fullPulse 1.6s ease-in-out infinite;}
+@keyframes fullPulse{50%{box-shadow:0 0 0 2px #ffb36b, 0 0 16px rgba(255,138,61,.95);}}
