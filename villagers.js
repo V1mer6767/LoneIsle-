@@ -481,6 +481,12 @@
     window.renderWorld = function () { origRender.apply(this, arguments); ensureEls(); };
     requestAnimationFrame(frame);
     window.__vil = { V, rt, syncPopulation, showBubble, BIOS, giveRequest };
+    window.workerInfo = function (res) {
+      const w = state.workers[res] || {}; const xp = w.xp || 0; const lvl = levelOf(xp);
+      const from = 4 * (lvl - 1) * (lvl - 1), to = lvl >= 6 ? from : 4 * lvl * lvl;
+      return { lvl, name: LEVEL_NAMES[lvl - 1], xp, from, to, max: lvl >= 6 };
+    };
+    window.workerPerson = function (res) { const v = V().find((x) => x.job === res); return v ? v.name : null; };
     window.cozyHelped = () => V().filter((v) => v.helped).length;
   });
 })();

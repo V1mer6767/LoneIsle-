@@ -168,6 +168,25 @@ const WORKER_DEFS = {
   gold: { res: "gold", name: "Скарбник", icon: "🧞", unlockLevel: 6, cost: { wood: 50, gold: 30 } },
 };
 const WORKER_CYCLE_MS = 3500;
+const WORKER_MAX_SPEED = 3; // training levels: each cuts the work cycle by 15%
+function workerCycleMs(w) { return Math.round(WORKER_CYCLE_MS * (1 - 0.15 * Math.min(WORKER_MAX_SPEED, (w && w.speed) || 0))); }
+function workerTrainCost(res, speed) {
+  const g = 40 * (speed + 1) * (speed + 1);
+  return { gold: g, wood: 20 * (speed + 1) };
+}
+function trainWorker(res) {
+  const w = state.workers[res]; if (!w) return;
+  const sp = w.speed || 0;
+  if (sp >= WORKER_MAX_SPEED) return;
+  const cost = workerTrainCost(res, sp);
+  if (!canAfford(cost)) return;
+  spend(cost);
+  w.speed = sp + 1;
+  gainXP(10);
+  updateHeader();
+  saveGame();
+  renderWorkerSheet();
+}
 
 const ISLAND_CENTERS = [
   { c: 0, r: 0 },   // головний острів (завжди твій)
@@ -954,7 +973,7 @@ function tickWorkers() {
   for (const res of Object.keys(state.workers)) {
     const w = state.workers[res];
     if (!w) continue;
-    if (Date.now() - w.lastCycle < WORKER_CYCLE_MS) continue;
+    if (Date.now() - w.lastCycle < workerCycleMs(w)) continue;
     w.lastCycle = Date.now();
     const { total, depleted } = workerCollectAllOfType(res);
     if (total > 0) {
@@ -1007,26 +1026,55 @@ function renderWorkerSheet() {
   for (const res of Object.keys(WORKER_DEFS)) {
     const def = WORKER_DEFS[res];
     const hired = !!state.workers[res];
+    if (hired) { list.appendChild(workerCard(res, def)); continue; }
     const levelOk = state.level >= def.unlockLevel;
     const afford = levelOk && canAfford(def.cost);
     const opt = document.createElement("div");
-    opt.className = "buildOption" + (hired || !afford ? " disabled" : "");
-    const statusLine = hired
-      ? `<span class="costChip" style="color:var(--grass-dark);">✓ найнято</span>`
-      : levelOk
+    opt.className = "buildOption" + (!afford ? " disabled" : "");
+    const statusLine = levelOk
       ? costChips(def.cost, afford)
       : `<span class="costChip short">Доступно з LV.${def.unlockLevel}</span>`;
     opt.innerHTML = `
       <div class="buildOptIcon">${def.icon}</div>
       <div class="buildOptInfo">
         <div class="buildOptName">${def.name}</div>
-        <div class="buildOptDesc">${res === "fish" ? "Приганяє човен до причалу й забирає улов" : `Автоматично збирає ${RES_ICON[res]} ${res === "wood" ? "дерево" : res === "stone" ? "камінь" : res === "food" ? "культури" : res === "meat" ? "м'ясо" : "золото"}`}</div>
+        <div class="buildOptDesc">${res === "fish" ? "Приганяє човен до причалу й забирає улов" : `Автоматично збирає ${RES_ICON[res]} ${RES_NAME_UA[res]}`}</div>
         <div class="buildOptCost">${statusLine}</div>
       </div>
     `;
-    if (!hired) opt.addEventListener("click", () => hireWorker(res));
+    opt.addEventListener("click", () => hireWorker(res));
     list.appendChild(opt);
   }
+}
+
+const RES_NAME_UA = { wood: "дерево", stone: "камінь", food: "їжу", fish: "рибу", meat: "м'ясо", gold: "золото" };
+function workerCard(res, def) {
+  const w = state.workers[res];
+  const info = typeof window.workerInfo === "function" ? window.workerInfo(res) : { lvl: 1, name: "Новачок", name_: "", xp: 0, from: 0, to: 4, max: false };
+  const sp = w.speed || 0;
+  const pct = info.max ? 100 : Math.round(((info.xp - info.from) / Math.max(1, info.to - info.from)) * 100);
+  const card = document.createElement("div");
+  card.className = "workerCard";
+  const cycle = (workerCycleMs(w) / 1000).toFixed(1);
+  const bonus = (info.lvl - 1) * 10;
+  let trainRow = "";
+  if (sp < WORKER_MAX_SPEED) {
+    const cost = workerTrainCost(res, sp);
+    const afford = canAfford(cost);
+    trainRow = `<button class="workerTrain${afford ? "" : " disabled"}" data-train="${res}">⚡ Тренування ${sp + 1}/${WORKER_MAX_SPEED} — швидше на 15% ${costChips(cost, afford)}</button>`;
+  } else {
+    trainRow = `<div class="workerMax">⚡ Максимальна швидкість</div>`;
+  }
+  card.innerHTML = `
+    <div class="wcHead"><span class="wcIcon">${def.icon}</span>
+      <div><div class="wcName"></div><div class="wcRole">${def.name} · ${info.name} (рів. ${info.lvl})</div></div></div>
+    <div class="wcBar"><i style="width:${pct}%"></i></div>
+    <div class="wcStats"><span>🔁 Цикл ${cycle} с</span><span>📈 Бонус збору +${bonus}%</span><span>🧰 Зібрано ${w.xp || 0}</span></div>
+    ${trainRow}`;
+  card.querySelector(".wcName").textContent = (typeof window.workerPerson === "function" && window.workerPerson(res)) || def.name;
+  const tb = card.querySelector("[data-train]");
+  if (tb) tb.addEventListener("click", () => trainWorker(res));
+  return card;
 }
 
 /* ---------- extra islands ---------- */
@@ -2825,7 +2873,7 @@ function renderBackupSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 86;
+const CURRENT_BUILD = 87;
 (function(){ const el=document.getElementById('buildStamp'); if(el) el.textContent='build v'+CURRENT_BUILD; })();
 
 async function checkForUpdate() {
