@@ -111,6 +111,10 @@
       <div class="buildOptIcon">🎡</div>
       <div class="buildOptInfo"><div class="buildOptName" id="menuWheelLabel">Колесо фортуни</div></div>
     </div>
+    <div class="buildOption" id="menuBackup">
+      <div class="buildOptIcon">💾</div>
+      <div class="buildOptInfo"><div class="buildOptName">Резервна копія</div></div>
+    </div>
     <div class="buildOption" id="menuMusic">
       <div class="buildOptIcon">🎵</div>
       <div class="buildOptInfo"><div class="buildOptName">Музика</div></div>
@@ -184,6 +188,16 @@
   <div class="sheetTitle">👥 Населення</div>
   <div class="buildList" id="popList"></div>
   <button id="btnClosePopSheet" class="btn ghost full">Закрити</button>
+</div>
+
+<div id="backupSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>
+<div id="backupSheet" class="sheet" style="display:none;">
+  <div class="sheetHandle"></div>
+  <div class="sheetTitle">💾 Резервна копія</div>
+  <div class="buildOptDesc" style="padding:0 2px 12px;">Гра сама робить автокопію раз на кілька годин. Файлову копію варто зберігати перед великими змінами або при переході на інший пристрій.</div>
+  <div class="buildList" id="backupList"></div>
+  <input type="file" id="backupFile" accept=".json,application/json" style="display:none;" />
+  <button id="btnCloseBackupSheet" class="btn ghost full">Закрити</button>
 </div>
 
 <div id="musicSheetBackdrop" class="sheetBackdrop" style="display:none;"></div>

@@ -86,7 +86,7 @@ function deleteProfile(id) {
   }
   const p = profiles.find((x) => x.id === id);
   if (!confirm(`Видалити профіль "${p.name}" назавжди? Весь прогрес на ньому зникне!`)) return;
-  localStorage.removeItem(LEGACY_SAVE_KEY + "_" + id);
+  ["", "_backup", "_backup_at", "_corrupt"].forEach((suf) => localStorage.removeItem(LEGACY_SAVE_KEY + "_" + id + suf));
   const newProfiles = profiles.filter((x) => x.id !== id);
   saveProfilesIndex(newProfiles);
   if (id === ACTIVE_PROFILE_ID) {
@@ -375,12 +375,62 @@ function recoverMisplacedMainIslandBuildings(parsed) {
   return true;
 }
 
-function loadGame() {
+/* ---------- save safety: automatic backup, corruption guard, quota handling ---------- */
+const BACKUP_KEY = STORAGE_KEY + "_backup";
+const BACKUP_AT_KEY = STORAGE_KEY + "_backup_at";
+const CORRUPT_KEY = STORAGE_KEY + "_corrupt";
+const BACKUP_EVERY_MS = 6 * 3600 * 1000;
+const SAVE_VERSION = 2; // bump when a migration changes the save shape
+let recoveredFromCorrupt = false;
+let saveFailNotified = false;
+
+function showToast(text, ms) {
+  let t = document.getElementById("liToast");
+  if (!t) { t = document.createElement("div"); t.id = "liToast"; t.className = "liToast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+  t.textContent = text; t.classList.add("show");
+  clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove("show"), ms || 3500);
+}
+function looksLikeSave(obj) {
+  return !!obj && typeof obj === "object" && obj.tiles && typeof obj.tiles === "object" && typeof obj.level === "number" && obj.resources && typeof obj.resources === "object";
+}
+// Keep a copy of the last healthy save (at most once per 6 h) so a bad session can always be rolled back.
+function rotateBackup(raw) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const at = Number(localStorage.getItem(BACKUP_AT_KEY)) || 0;
+    if (Date.now() - at < BACKUP_EVERY_MS) return;
+    localStorage.setItem(BACKUP_KEY, raw);
+    localStorage.setItem(BACKUP_AT_KEY, String(Date.now()));
+  } catch (e) { /* storage full: backups are best-effort */ }
+}
+function backupInfo() {
+  try {
+    const raw = localStorage.getItem(BACKUP_KEY); if (!raw) return null;
+    const st = JSON.parse(raw); if (!looksLikeSave(st)) return null;
+    return { at: Number(localStorage.getItem(BACKUP_AT_KEY)) || 0, level: st.level, raw };
+  } catch (e) { return null; }
+}
+function exportSaveJson() {
+  const name = activeProfileName();
+  return JSON.stringify({ game: "LoneIsle", build: CURRENT_BUILD, saveVersion: SAVE_VERSION, profile: name, exportedAt: new Date().toISOString(), state }, null, 1);
+}
+function validateImportedSave(text) {
+  let data; try { data = JSON.parse(text); } catch (e) { return { error: "Файл не схожий на збереження LoneIsle." }; }
+  const st = data && data.game === "LoneIsle" && data.state ? data.state : data;
+  if (!looksLikeSave(st)) return { error: "У файлі немає коректного збереження." };
+  const r = st.resources;
+  for (const k of ["wood", "stone", "gold"]) if (typeof r[k] !== "number" || !isFinite(r[k]) || r[k] < 0) return { error: "Ресурси у файлі пошкоджені." };
+  if (!isFinite(st.level) || st.level < 1 || st.level > 1000) return { error: "Рівень у файлі некоректний." };
+  return { state: st };
+}
+
+function loadGame() {
+  let raw = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { state: defaultState(), gapMs: 0 };
     const parsed = JSON.parse(raw);
-    if (!parsed || !parsed.tiles) return { state: defaultState(), gapMs: 0 };
+    if (!parsed || !parsed.tiles) throw new Error("save has no tiles");
+    rotateBackup(raw);
     if (!Array.isArray(parsed.boats)) parsed.boats = [];
     const now0 = Date.now();
     parsed.boats.forEach((b) => {
@@ -419,16 +469,26 @@ function loadGame() {
     if (typeof parsed.lastPopTick !== "number") parsed.lastPopTick = Date.now();
     Object.values(parsed.tiles).forEach((t) => { if (t.treasureFound) delete t.treasureFound; });
     delete parsed.secondIslandBought;
+    parsed.saveVersion = SAVE_VERSION;
     const gapMs = Date.now() - (parsed.lastSaveAt || Date.now());
     return { state: parsed, gapMs };
-  } catch {
+  } catch (e) {
+    // Never silently overwrite a save we couldn't read: keep the raw text so it can be recovered.
+    if (raw) { try { localStorage.setItem(CORRUPT_KEY, raw); } catch (_) {} recoveredFromCorrupt = true; }
     return { state: defaultState(), gapMs: 0 };
   }
 }
 
 function saveGame() {
   state.lastSaveAt = Date.now();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const json = JSON.stringify(state);
+  try {
+    localStorage.setItem(STORAGE_KEY, json);
+  } catch (e) {
+    // Storage full: free the optional copies first, then retry once.
+    try { localStorage.removeItem(CORRUPT_KEY); localStorage.removeItem(BACKUP_KEY); localStorage.setItem(STORAGE_KEY, json); }
+    catch (e2) { if (!saveFailNotified) { saveFailNotified = true; showToast("⚠️ Не вдалося зберегти прогрес: пам'ять пристрою заповнена. Зроби копію у Меню → Резервна копія."); } }
+  }
 }
 
 /* ---------- xp / level ---------- */
@@ -2678,8 +2738,66 @@ function renderMusicSheet() {
   list.appendChild(offRow);
 }
 
+
+/* ---------- backup sheet (export / import / restore) ---------- */
+function openBackupSheet() { markSheetOpened(); renderBackupSheet(); $("backupSheetBackdrop").style.display = "block"; $("backupSheet").style.display = "block"; }
+function closeBackupSheet() { $("backupSheetBackdrop").style.display = "none"; $("backupSheet").style.display = "none"; }
+function downloadSave() {
+  try {
+    saveGame();
+    const blob = new Blob([exportSaveJson()], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "loneisle-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    showToast("Копію збережено у файл");
+  } catch (e) { showToast("Не вдалося створити файл"); }
+}
+function applySaveAndReload(st) {
+  state = st; // stop autosave from writing the old state over the restored one
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(st)); } catch (e) { showToast("Не вдалося записати — пам'ять заповнена"); return; }
+  location.replace(location.pathname + "?v=" + Date.now());
+}
+function importSaveFile(file) {
+  if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    const v = validateImportedSave(String(rd.result || ""));
+    if (v.error) { showToast(v.error, 5000); return; }
+    if (!confirm(`Замінити поточний прогрес збереженням із файлу (рівень ${v.state.level})? Поточний прогрес буде збережено як автокопію.`)) return;
+    try { localStorage.setItem(BACKUP_KEY, JSON.stringify(state)); localStorage.setItem(BACKUP_AT_KEY, String(Date.now())); } catch (e) {}
+    applySaveAndReload(v.state);
+  };
+  rd.onerror = () => showToast("Не вдалося прочитати файл");
+  rd.readAsText(file);
+}
+function renderBackupSheet() {
+  const list = $("backupList"); list.innerHTML = "";
+  const add = (icon, name, desc, fn) => {
+    const row = document.createElement("div"); row.className = "buildOption";
+    row.innerHTML = `<div class="buildOptIcon">${icon}</div><div class="buildOptInfo"><div class="buildOptName">${name}</div><div class="buildOptDesc">${desc}</div></div>`;
+    row.addEventListener("click", fn); list.appendChild(row);
+  };
+  add("💾", "Зберегти копію у файл", "Завантажити прогрес цього профілю на пристрій", downloadSave);
+  add("📂", "Відновити з файлу", "Вибрати раніше збережений файл .json", () => $("backupFile").click());
+  const b = backupInfo();
+  if (b) {
+    const when = b.at ? new Date(b.at).toLocaleString("uk-UA") : "невідомо коли";
+    add("🕒", "Відновити автокопію", `Рівень ${b.level}, створена ${when}`, () => {
+      if (!confirm("Повернути гру до автокопії? Поточний прогрес буде замінено.")) return;
+      try { applySaveAndReload(JSON.parse(b.raw)); } catch (e) { showToast("Автокопія пошкоджена"); }
+    });
+  }
+  let corrupt = null; try { corrupt = localStorage.getItem(CORRUPT_KEY); } catch (e) {}
+  if (corrupt) add("🩹", "Спробувати відновити пошкоджене збереження", "Знайдено збереження, яке не вдалося прочитати", () => {
+    const v = validateImportedSave(corrupt);
+    if (v.error) { showToast("Це збереження не можна відновити. Його можна передати розробнику."); return; }
+    if (!confirm("Відновити пошкоджене збереження?")) return;
+    applySaveAndReload(v.state);
+  });
+}
+
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 82;
+const CURRENT_BUILD = 83;
 
 async function checkForUpdate() {
   try {
@@ -2745,6 +2863,10 @@ function wire() {
   $("btnCloseShopSheet").addEventListener("click", closeShopSheet);
   $("shopSheetBackdrop").addEventListener("click", closeShopSheet);
   $("menuMusic").addEventListener("click", () => { closeMoreSheet(); openMusicSheet(); });
+  $("menuBackup").addEventListener("click", () => { closeMoreSheet(); openBackupSheet(); });
+  $("btnCloseBackupSheet").addEventListener("click", closeBackupSheet);
+  $("backupSheetBackdrop").addEventListener("click", closeBackupSheet);
+  $("backupFile").addEventListener("change", (e) => { importSaveFile(e.target.files && e.target.files[0]); e.target.value = ""; });
   $("btnCloseMusicSheet").addEventListener("click", closeMusicSheet);
   $("btnPopulation").addEventListener("click", openPopSheet);
   $("btnClosePopSheet").addEventListener("click", closePopSheet);
@@ -2813,7 +2935,11 @@ function init() {
       $("welcomeOverlay").style.display = "flex";
     }
   }
+  if (recoveredFromCorrupt) setTimeout(() => showToast("⚠️ Збереження пошкоджене. Його копію збережено: Меню → Резервна копія", 7000), 800);
   saveGame();
+  const saveNow = () => { if (state) saveGame(); };
+  document.addEventListener("visibilitychange", () => { if (document.hidden) saveNow(); });
+  window.addEventListener("pagehide", saveNow);
 
   setInterval(tickWorkers, 1200);
   setInterval(tickPopulation, POP_TICK_MS);
