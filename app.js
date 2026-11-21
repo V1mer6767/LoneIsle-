@@ -2797,7 +2797,8 @@ function renderBackupSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 83;
+const CURRENT_BUILD = 84;
+(function(){ const el=document.getElementById('buildStamp'); if(el) el.textContent='build v'+CURRENT_BUILD; })();
 
 async function checkForUpdate() {
   try {
