@@ -136,6 +136,8 @@ const BUILDING_DEFS = {
   farm: { id: "farm", name: "Ферма", icon: "🌾", unlockLevel: 2, baseCost: { wood: 10 }, produce: { res: "food", interval: 5000, cap: 60 }, desc: "Вирощує культури з часом" },
   mine: { id: "mine", name: "Копальня", icon: "⛏️", unlockLevel: 3, baseCost: { wood: 20 }, produce: { res: "stone", interval: 6000, cap: 50 }, desc: "Виробляє камінь з часом" },
   warehouse: { id: "warehouse", name: "Склад", icon: "📦", unlockLevel: 3, baseCost: { wood: 40, stone: 20 }, storage: 500, desc: "Збільшує ліміт ресурсів на +500 (дерево, камінь, їжа, риба, м'ясо)" },
+  workshop: { id: "workshop", name: "Майстерня", icon: "🛠️", unlockLevel: 7, baseCost: { wood: 60, stone: 30 }, produce: { res: "gold", interval: 9000, cap: 45 }, desc: "Майстри виготовляють речі на продаж — приносить золото" },
+  lighthouse: { id: "lighthouse", name: "Маяк", icon: "🗼", unlockLevel: 9, baseCost: { wood: 40, stone: 80, gold: 40 }, produce: { res: "gold", interval: 12000, cap: 60 }, desc: "Красивий маяк: мандрівники платять за вид і безпечний прохід" },
   house: { id: "house", name: "Хатина", icon: "🏠", unlockLevel: 4, baseCost: { wood: 18, stone: 10 }, produce: { res: "gold", interval: 10000, cap: 40 }, desc: "Приносить золото з часом" },
   dock: { id: "dock", name: "Причал", icon: "⚓", unlockLevel: 5, baseCost: { wood: 26, stone: 16 }, produce: { res: "gold", interval: 9000, cap: 30 }, special: "dock", desc: "Відкриває забудову на воді й приносить золото від портових зборів" },
   boat: { id: "boat", name: "Рибальський човен", icon: "⛵", unlockLevel: 6, baseCost: { wood: 18, gold: 10 }, produce: { res: "fish", interval: 5000, cap: 70 }, desc: "Плаває в морі й ловить рибу" },
@@ -152,7 +154,7 @@ const BUILDING_DEFS = {
   restaurant: { id: "restaurant", name: "Ресторан", icon: "🍽️", unlockLevel: 50, baseCost: { wood: 75, stone: 35 }, produce: { res: "gold", interval: 9000, cap: 100 }, desc: "Приносить дохід від гостей Outer Banks" },
   townshop: { id: "townshop", name: "Крамниця", icon: "🏪", unlockLevel: 50, baseCost: { wood: 50, stone: 30 }, produce: { res: "gold", interval: 7000, cap: 80 }, desc: "Приносить дохід від туристів" },
 };
-const BUILDING_ORDER = ["sawmill", "farm", "mine", "warehouse", "house", "cow", "pig", "dock", "bull", "townhouse", "townshop", "restaurant", "lantern", "flowers", "bench", "campfire", "fountain", "gazebo"];
+const BUILDING_ORDER = ["sawmill", "farm", "mine", "warehouse", "workshop", "house", "cow", "pig", "dock", "bull", "townhouse", "townshop", "restaurant", "lighthouse", "lantern", "flowers", "bench", "campfire", "fountain", "gazebo"];
 function decorCount() { return Object.values(state.tiles).filter((t) => t.building && BUILDING_DEFS[t.building.id] && BUILDING_DEFS[t.building.id].decor).length; }
 
 const RES_ICON = { wood: "🌲", stone: "🪨", food: "🌾", fish: "🐟", meat: "🥩", gold: "💰" };
@@ -2823,7 +2825,7 @@ function renderBackupSheet() {
 }
 
 /* ---------- misc ---------- */
-const CURRENT_BUILD = 85;
+const CURRENT_BUILD = 86;
 (function(){ const el=document.getElementById('buildStamp'); if(el) el.textContent='build v'+CURRENT_BUILD; })();
 
 async function checkForUpdate() {
